@@ -1,0 +1,70 @@
+#!/bin/bash
+
+set -e
+
+# Write progress bar
+function progress {
+    current=$1
+    total=$2
+    width=68
+    percent=$(echo "$current*100/$total" | bc)
+    bars=$(echo "$current*$width/$total" | bc)
+    nobars=$(expr $width \- $bars \- 1)
+
+    echo -ne "$(printf '%3i' $percent)% ["
+    for j in $(seq 1 $bars); do echo -ne "="; done
+    if [[ $nobars -gt 0 ]]; then echo -ne ">"; fi
+    for j in $(seq 1 $nobars); do echo -ne "."; done
+    echo -ne "]\r"
+}
+
+currtime=$(date +"%Y-%m-%d-%H%M%S")
+
+# Make sure runs are killed if script aborts
+trap 'kill $(jobs -p) 2>/dev/null' EXIT
+
+# Get copy of benchmarks repository
+if [[ ! -d benchmarks ]]; then
+    git clone https://github.com/mit-crpg/benchmarks.git
+fi
+
+# Prepare benchmarks
+echo Modifying run parameters...
+for benchmark in $(cat benchmark-list.txt); do
+    sed -i -r -e "s:(<particles>).*(</particles>):\11000\2:g" \
+        -e "s:(<inactive>).*(</inactive>):\110\2:g" \
+        -e "s:(<batches>).*(</batches>):\120\2:g" benchmarks/${benchmark}/settings.xml
+done
+
+# Run benchmarks
+num=$(cat benchmark-list.txt | wc -l)
+i=0
+basedir=$PWD
+echo "Running benchmarks..."
+for benchmark in $(cat benchmark-list.txt | head -1); do
+    # Update progress bar
+    progress $i $num
+    i=$(expr $i \+ 1)
+
+    # Run openmc
+    cd benchmarks/${benchmark}
+    output=output_$(date +"%Y-%m-%d-%H%M%S")
+    openmc > $output &
+    wait $!
+    cd $basedir
+
+    # Get k-effective
+    keff=$(cat benchmarks/${benchmark}/$output | grep Combined | \
+        sed -r -e 's_.*=(.*)\+/-.*_\1_g')
+    stdev=$(cat benchmarks/${benchmark}/$output | grep Combined | \
+        sed -r -e 's_.*\+/-(.*)_\1_g')
+    echo $benchmark $keff $stdev >> results_$currtime
+done
+
+# Display 100% on progress bar
+progress $num $num
+echo -ne "\n"
+
+# Convert results to spreadsheet
+python make-xls.py results_$currtime
+rm results_$currtime

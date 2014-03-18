@@ -5,3 +5,6 @@
 ace
 xsdir
 output
+
+# Results files
+results_*
