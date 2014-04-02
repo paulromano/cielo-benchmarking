@@ -1,0 +1,32 @@
+#!/bin/bash
+
+if [[ $# -lt 1 ]]; then
+    echo Must supply name of ENDF file
+    exit
+fi
+
+# Copy ENDF file to name NJOY will recognize
+cp $1 tape20
+
+# Run NJOY
+njoy <<EOF
+reconr / Reconstruct XS for neutrons
+20 21
+'ENDF/B-VII.1 PENDF for 94-Pu-239'/
+9437 2/
+0.001 0.0 0.003/ err tempr errmax
+'ENDF/B-VII.1: 94-Pu-239'/
+'Processed by NJOY99.396'/
+0/
+stop
+EOF
+
+# Remove input and NJOYs default output
+rm tape20 output
+
+# Rename PENDF file
+if [[ $# -ge 2 ]]; then
+    mv tape21 $2
+else
+    mv tape21 pendf
+fi
