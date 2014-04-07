@@ -9,7 +9,7 @@ from tabulate import tabulate
 from fudge.legacy.converting.endfFileToGND import endfFileToGND
 
 # File to convert
-endffile = 'n-094_Pu_239.endf'
+endffile = 'endf-b-vii-1.endf'
 
 # This is the "change" parameter by which all data is adjusted
 target = 0.05

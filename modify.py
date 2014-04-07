@@ -7,7 +7,7 @@ import numpy as np
 from fudge.legacy.converting.endfFileToGND import endfFileToGND
 
 # File to convert
-endffile = 'n-094_Pu_239.endf'
+endffile = 'endf-b-vii-1.endf'
 
 # This is the "change" parameter by which all data is adjusted
 x = 0.05
