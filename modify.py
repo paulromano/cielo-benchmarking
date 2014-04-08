@@ -26,29 +26,45 @@ params = eval.resonances.resolved.regions[0].nativeData.resonanceParameters
 energy = params.getColumn('energy')
 columnNames = [col.name for col in params.columns]
 colN = columnNames.index('neutronWidth')
+colG = columnNames.index('captureWidth')
 colFA = columnNames.index('fissionWidthA')
 colFB = columnNames.index('fissionWidthB')
 
 # ==============================================================================
 print('Modifying resonance parameters...')
 
+# Relative uncertainties:
+#
+#    Energy range   total   capture   fission   elastic
+#    --------------------------------------------------
+#       E < 0.1      1.4%      4.2%      0.9%      4.6%
+#     0.1 - 0.54     1.9%      4.2%      1.9%      3.7%
+#    0.54 - 4        1.3%      3.6%      1.1%      4.3%
+#       4 - 22.6     3.1%      7.1%      3.0%      3.3%
+#    22.6 - 454      3.9%      6.5%      3.5%      5.7%
+#     454 - 2500     3.2%      5.1%      3.2%      4.0%
+
 # Increase radiation width for 0.3 eV resonance
+uFission = 0.019
+uCapture = 0.042
 resonance = 0.2956243
 row = energy.index(resonance)
-params.data[row][colN] *= 1 + x
+params.data[row][colG] *= 1 + x*uCapture
 
 # Decrease fission widths for 0.3 eV resonance -- note that for both this
 # resonance and the 7.8 eV resonance, the second-chance fission partial-width is
 # zero already so it doesn't need to be adjusted
-params.data[row][colFA] *= 1 - x
+params.data[row][colFA] *= 1 - x*uFission
 
 # Increase radiation width for 7.8 eV resonance
+uCapture = 0.071
+uFission = 0.03
 resonance = 7.8158
 row = energy.index(resonance)
-params.data[row][colN] *= 1 + x
+params.data[row][colG] *= 1 + x*uCapture
 
 # Decrease fission widths for 7.8 eV resonance
-params.data[row][colFA] *= 1 - x
+params.data[row][colFA] *= 1 - x*uFission
 
 # ==============================================================================
 print('Modifying prompt neutron fission spectra...')
