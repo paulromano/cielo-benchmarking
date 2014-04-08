@@ -9,3 +9,6 @@ output
 # Results files
 results_*
 benchmarks
+
+# IPython notebooks
+*.ipynb
