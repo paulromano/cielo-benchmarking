@@ -11,12 +11,29 @@ from fudge.legacy.converting.endfFileToGND import endfFileToGND
 # File to convert
 endffile = 'endf-b-vii-1.endf'
 
+# Relative uncertainties:
+#
+#    Energy range   total   capture   fission   elastic
+#    --------------------------------------------------
+#       E < 0.1      1.4%      4.2%      0.9%      4.6%
+#     0.1 - 0.54     1.9%      4.2%      1.9%      3.7%
+#    0.54 - 4        1.3%      3.6%      1.1%      4.3%
+#       4 - 22.6     3.1%      7.1%      3.0%      3.3%
+#    22.6 - 454      3.9%      6.5%      3.5%      5.7%
+#     454 - 2500     3.2%      5.1%      3.2%      4.0%
+
+uCapture = 0.042
+uFission = 0.009
+
 # This is the "change" parameter by which all data is adjusted
-target = 0.05
+target = 0.5
+targetCapture = target*uCapture
+targetFission = -target*uFission
 initial_guess = 0.1
 
 # Create ReactionSuite from ENDF file
-print('Targeting a {0} percent change in 2200 m/s cross sections\n'.format(target*100).upper())
+print('Targeting a {0}% increase in 2200 m/s capture'.format(targetCapture*100).upper())
+print('Targeting a {0}% decrease in 2200 m/s fission\n'.format(targetFission*100).upper())
 print('Reading data from {0}...'.format(endffile))
 translation = endfFileToGND(endffile, toStdOut=False, toStdErr=False)
 eval = translation['reactionSuite']
@@ -47,8 +64,8 @@ colG = columnNames.index('captureWidth')
 colFA = columnNames.index('fissionWidthA')
 colFB = columnNames.index('fissionWidthB')
 
-xg = initial_guess
-xf = initial_guess
+xg = initial_guess*uCapture
+xf = initial_guess*uFission
 iteration = 1
 while True:
     print('Iteration ' + str(iteration))
@@ -92,8 +109,8 @@ while True:
     print('  2200 m/s fission xs = {0:.3f} b ({1:.2f}%)'.format(fission2200, changeFission*100))
 
     iteration += 1
-    if (abs(target/changeCapture - 1) < target*0.1 and
-        abs(-target/changeFission - 1) < target*0.1):
+    if (abs(targetCapture/changeCapture - 1) < abs(targetCapture)*0.1 and
+        abs(targetFission/changeFission - 1) < abs(targetFission)*0.1):
         break
 
     # Reset partial widths
@@ -102,8 +119,8 @@ while True:
         params.data[row][colFA] = GFA[row]
         params.data[row][colFB] = GFB[row]
 
-    xg *= target/changeCapture
-    xf *= -target/changeFission
+    xg *= targetCapture/changeCapture
+    xf *= targetFission/changeFission
 
 # Print tables
 headers = [col.name + (' ({0})'.format(col.units) if col.units else '')
