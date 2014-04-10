@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import copy
+import math
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -67,14 +68,31 @@ params.data[row][colG] *= 1 + x*uCapture
 params.data[row][colFA] *= 1 - x*uFission
 
 # ==============================================================================
-print('Modifying prompt neutron fission spectra...')
+print('Modifying thermal prompt nubar...')
+
+# Set uncertainty for nubar
+uNubar = 0.04
 
 # Get fission reaction
 fission = eval.getReaction('fission')
 
+# Get prompt nubar
+promptN = fission.outputChannel.particles[0]
+nubar = promptN.multiplicity['pointwise']
+
+# Set constants for modification
+A = 1.0608
+B = 2.3321
+
+# Loop through energies and modified nu-bar values
+for i, (energy, nu) in enumerate(nubar):
+    nubar[i] = [energy, nu - x*uNubar*A*math.exp(-B*energy)]
+
+# ==============================================================================
+print('Modifying prompt neutron fission spectra...')
+
 # Get prompt fission neutron spectrum from thermal fission
-pnfs = fission.outputChannel.particles[0].distributions. \
-    components['uncorrelated'].energyComponent['pointwise']
+pnfs = promptN.distributions.components['uncorrelated'].energyComponent['pointwise']
 xys = pnfs[0]
 #x0, y0 = map(np.array, xys.copyDatatoXsAndYs())
 
