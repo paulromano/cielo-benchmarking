@@ -27,16 +27,27 @@ uFission = 0.009
 
 # This is the "change" parameter by which all data is adjusted
 target = 0.5
-targetCapture = target*uCapture
-targetFission = -target*uFission
 initial_guess = 0.1
 
 # Create ReactionSuite from ENDF file
-print('Targeting a {0}% increase in 2200 m/s capture'.format(targetCapture*100).upper())
-print('Targeting a {0}% decrease in 2200 m/s fission\n'.format(targetFission*100).upper())
 print('Reading data from {0}...'.format(endffile))
 translation = endfFileToGND(endffile, toStdOut=False, toStdErr=False)
 eval = translation['reactionSuite']
+cov = translation['covarianceSuite']
+
+# Determine 2200 m/s covariances for fission and capture
+covFission = cov.sections[12]
+uncvFission = covFission.getNativeData().getUncertaintyVector()
+uFission = uncvFission.getValue(0.0253)
+
+covCapture = cov.sections[19]
+uncvCapture = covCapture.getNativeData().getUncertaintyVector()
+uCapture = uncvCapture.getValue(0.0253)
+
+targetCapture = target*uCapture
+targetFission = -target*uFission
+print('Targeting a {0:.3f}% increase in 2200 m/s capture'.format(targetCapture*100).upper())
+print('Targeting a {0:.3f}% decrease in 2200 m/s fission\n'.format(targetFission*100).upper())
 
 # Reconstruct resonances
 print('Reconstructing resonances...')
