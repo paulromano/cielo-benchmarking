@@ -101,16 +101,46 @@ a = 0.966e6
 b = 2.842e-6
 Watt = lambda E, a, b: float(np.exp(-E/a)*np.sinh(np.sqrt(b*E)))
 
-# Modify each probability by ratio of Watt spectra
-for i, (energy, prob) in enumerate(xys):
-    if np.isclose(energy, 0.0):
-        continue
-    xys[i] = [energy, prob*Watt(energy, (1+x)*a, b)/Watt(energy, a, b)]
+# Uncertainty of 30 keV from R. Capote
+uAverage = 30.0e3
 
-# Renormalize spectra
-integral = xys.integrate()
-for i, (energy, prob) in enumerate(xys):
-    xys[i] = [energy, prob/integral]
+originalAvgE = xys.integrateWithWeight_x()
+origX, origY = xys.copyDataToXsAndYs()
+
+target = x*uAverage/originalAvgE
+initial_guess = 0.5
+x = initial_guess*target
+iteration = 0
+print('Targeting a {0:.3f}% increase in PFNS average energy ({1:.4f} MeV)'.format(
+        target*100, originalAvgE*1e-6*(1 + target)).upper())
+
+while True:
+    print('Iteration ' + str(iteration))
+    print('  Changing Watt parameter by {0:.2f}%'.format(x*100))
+
+    # Modify each probability by ratio of Watt spectra
+    for i, (energy, prob) in enumerate(xys):
+        if np.isclose(energy, 0.0):
+            continue
+        xys[i] = [energy, prob*Watt(energy, (1+x)*a, b)/Watt(energy, a, b)]
+
+    # Renormalize spectra
+    integral = xys.integrate()
+    for i, (energy, prob) in enumerate(xys):
+        xys[i] = [energy, prob/integral]
+
+    avgE = xys.integrateWithWeight_x()
+    change = (avgE - originalAvgE)/originalAvgE
+
+    print('  PFNS average energy = {0:.4f} MeV ({1:.3f}%)'.format(
+            avgE*1e-6, change*100))
+
+    iteration += 1
+    if (abs(target/change - 1) < abs(target)*0.1):
+        break
+
+    xys.setDataFromXsAndYs(origX, origY)
+    x *= target/change
 
 
 # ==============================================================================
