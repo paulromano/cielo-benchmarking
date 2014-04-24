@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import copy
 import math
 
 import matplotlib.pyplot as plt
 import numpy as np
+from tabulate import tabulate
 from fudge.legacy.converting.endfFileToGND import endfFileToGND
 
 # File to convert
@@ -13,9 +15,15 @@ endffile = 'endf-b-vii-1.endf'
 # This is the "change" parameter by which all data is adjusted
 x = 0.05
 
+def header(s):
+    n = (77 - len(s))//2
+    print('{0}\n{1} {2} {1}\n{0}\n'.format(
+            '='*79, ' '*n, s, ' '*(79 - n+len(s)+2)))
+
 # ==============================================================================
-# Create ReactionSuite from ENDF file
-print('Reading data from {0}...'.format(endffile))
+header('(1) Reading data from {0}'.format(endffile))
+# ==============================================================================
+
 translation = endfFileToGND(endffile, toStdOut=False, toStdErr=False)
 eval = translation['reactionSuite']
 cov = translation['covarianceSuite']
@@ -32,7 +40,8 @@ colFA = columnNames.index('fissionWidthA')
 colFB = columnNames.index('fissionWidthB')
 
 # ==============================================================================
-print('Modifying resonance parameters...')
+header('(2) Modifying resonance parameters...')
+# ==============================================================================
 
 # Relative uncertainties:
 #
@@ -45,38 +54,58 @@ print('Modifying resonance parameters...')
 #    22.6 - 454      3.9%      6.5%      3.5%      5.7%
 #     454 - 2500     3.2%      5.1%      3.2%      4.0%
 
-# Increase radiation width for 0.3 eV resonance
+headers = [col.name + (' ({0})'.format(col.units) if col.units else '')
+          for col in params.columns]
+
+originalData = copy.deepcopy(params.data)
+print('ORIGINAL RESONANCE PARAMETERS')
+print(tabulate(originalData[4:6], headers=headers, tablefmt='grid') + '\n')
+
 uFission = 0.019
 uCapture = 0.042
 resonance = 0.2956243
 row = energy.index(resonance)
-params.data[row][colG] *= 1 + x*uCapture
+print('Uncertainty in 0.296 eV capture width = {0} eV'.format(
+        uCapture*params.data[row][colG]))
+print('Uncertainty in 0.296 eV fissionA width = {0} eV'.format(
+        uFission*params.data[row][colFA]))
 
-# Decrease fission widths for 0.3 eV resonance -- note that for both this
-# resonance and the 7.8 eV resonance, the second-chance fission partial-width is
-# zero already so it doesn't need to be adjusted
+# Increase radiation width for 0.3 eV resonance and decrease fission widths for
+# 0.3 eV resonance -- note that for both this resonance and the 7.8 eV
+# resonance, the second-chance fission partial-width is zero already so it
+# doesn't need to be adjusted
+params.data[row][colG] *= 1 + x*uCapture
 params.data[row][colFA] *= 1 - x*uFission
 
-# Increase radiation width for 7.8 eV resonance
 uCapture = 0.071
 uFission = 0.03
 resonance = 7.8158
 row = energy.index(resonance)
-params.data[row][colG] *= 1 + x*uCapture
+print('Uncertainty in 7.8 eV capture width = {0} eV'.format(
+        uCapture*abs(params.data[row][colG])))
+print('Uncertainty in 7.8 eV fissionA width = {0} eV\n'.format(
+        uFission*abs(params.data[row][colFA])))
 
-# Decrease fission widths for 7.8 eV resonance
+# Increase radiation width and decrease fission width for 7.8 eV resonance
+params.data[row][colG] *= 1 + x*uCapture
 params.data[row][colFA] *= 1 - x*uFission
 
+print('MODIFIED RESONANCE PARAMETERS')
+print(tabulate(params.data[4:6], headers=headers, tablefmt='grid') + '\n')
+
 # ==============================================================================
-print('Modifying thermal prompt nubar...')
+header('(3) Modifying thermal prompt nubar...')
+# ==============================================================================
 
-# Set uncertainty for nubar
-uNubar = 0.04
-
-# Get fission reaction
-fission = eval.getReaction('fission')
+# Determine 2200 m/s covariance for nubar
+covNubar = cov.sections[0]
+uncvNubar = covNubar.getNativeData().getUncertaintyVector()
+uNubar = uncvNubar.getValue(0.0253)
+print('Uncertainty in 2200 m/s prompt fission nubar = {0:.3f}%'.format(
+        uNubar*100))
 
 # Get prompt nubar
+fission = eval.getReaction('fission')
 promptN = fission.outputChannel.particles[0]
 nubar = promptN.multiplicity['pointwise']
 
@@ -89,7 +118,8 @@ for i, (energy, nu) in enumerate(nubar):
     nubar[i] = [energy, nu - x*uNubar*A*math.exp(-B*energy)]
 
 # ==============================================================================
-print('Modifying prompt neutron fission spectra...')
+header('(4) Modifying prompt neutron fission spectra...')
+# ==============================================================================
 
 # Get prompt fission neutron spectrum from thermal fission
 pnfs = promptN.distributions.components['uncorrelated'].energyComponent['pointwise']
