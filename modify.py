@@ -61,34 +61,30 @@ originalData = copy.deepcopy(params.data)
 print('ORIGINAL RESONANCE PARAMETERS')
 print(tabulate(originalData[4:6], headers=headers, tablefmt='grid') + '\n')
 
-uFission = 0.019
-uCapture = 0.042
+uCapture = 1.3e-3
+uFission = 0.1e-3
 resonance = 0.2956243
 row = energy.index(resonance)
-print('Uncertainty in 0.296 eV capture width = {0} eV'.format(
-        uCapture*params.data[row][colG]))
-print('Uncertainty in 0.296 eV fissionA width = {0} eV'.format(
-        uFission*params.data[row][colFA]))
+print('Uncertainty in 0.296 eV capture width = {0} eV'.format(uCapture))
+print('Uncertainty in 0.296 eV fissionA width = {0} eV'.format(uFission))
 
 # Increase radiation width for 0.3 eV resonance and decrease fission widths for
 # 0.3 eV resonance -- note that for both this resonance and the 7.8 eV
 # resonance, the second-chance fission partial-width is zero already so it
 # doesn't need to be adjusted
-params.data[row][colG] *= 1 + x*uCapture
-params.data[row][colFA] *= 1 - x*uFission
+params.data[row][colG] += x*uCapture
+params.data[row][colFA] -= x*uFission
 
-uCapture = 0.071
-uFission = 0.03
+uCapture = 4.4e-3
+uFission = 1.9e-3
 resonance = 7.8158
 row = energy.index(resonance)
-print('Uncertainty in 7.8 eV capture width = {0} eV'.format(
-        uCapture*abs(params.data[row][colG])))
-print('Uncertainty in 7.8 eV fissionA width = {0} eV\n'.format(
-        uFission*abs(params.data[row][colFA])))
+print('Uncertainty in 7.8 eV capture width = {0} eV'.format(uCapture))
+print('Uncertainty in 7.8 eV fissionA width = {0} eV\n'.format(uFission))
 
 # Increase radiation width and decrease fission width for 7.8 eV resonance
-params.data[row][colG] *= 1 + x*uCapture
-params.data[row][colFA] *= 1 - x*uFission
+params.data[row][colG] += x*uCapture
+params.data[row][colFA] -= x*uFission
 
 print('MODIFIED RESONANCE PARAMETERS')
 print(tabulate(params.data[4:6], headers=headers, tablefmt='grid') + '\n')
@@ -136,6 +132,9 @@ uAverage = 30.0e3
 
 originalAvgE = xys.integrateWithWeight_x()
 origX, origY = xys.copyDataToXsAndYs()
+
+print('Uncertainty in PFNS average energy = {0:.3f} keV ({1:.2f}%)'.format(
+        uAverage/1e3, uAverage/originalAvgE*100))
 
 target = x*uAverage/originalAvgE
 initial_guess = 0.5
