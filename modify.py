@@ -28,43 +28,41 @@ translation = endfFileToGND(endffile, toStdOut=False, toStdErr=False)
 eval = translation['reactionSuite']
 cov = translation['covarianceSuite']
 
-# Get RM parameters
+print('Reconstructing resonances...')
+eval.reconstructResonances()
+
+# Get capture and fission cross sections
+capture = eval.getReaction('capture').getCrossSection()['linear']
+fission = eval.getReaction('fission').getCrossSection()['linear']
+originalCapture2200 = capture.getValue(0.0253)
+originalFission2200 = fission.getValue(0.0253)
+originalCaptureXS = zip(*capture[:])
+originalFissionXS = zip(*fission[:])
+print('Original 2200 m/s capture xs = {0:.3f} b'.format(originalCapture2200))
+print('Original 2200 m/s fission xs = {0:.3f} b'.format(originalFission2200))
+
+# Get RM parameters, column indices for partial-widths
 params = eval.resonances.resolved.regions[0].nativeData.resonanceParameters
 
-# Get energy column and column indices for partial-widths
-energy = params.getColumn('energy')
 columnNames = [col.name for col in params.columns]
 colN = columnNames.index('neutronWidth')
 colG = columnNames.index('captureWidth')
 colFA = columnNames.index('fissionWidthA')
 colFB = columnNames.index('fissionWidthB')
-
-# ==============================================================================
-header('(2) Modifying resonance parameters...')
-# ==============================================================================
-
-# Relative uncertainties:
-#
-#    Energy range   total   capture   fission   elastic
-#    --------------------------------------------------
-#       E < 0.1      1.4%      4.2%      0.9%      4.6%
-#     0.1 - 0.54     1.9%      4.2%      1.9%      3.7%
-#    0.54 - 4        1.3%      3.6%      1.1%      4.3%
-#       4 - 22.6     3.1%      7.1%      3.0%      3.3%
-#    22.6 - 454      3.9%      6.5%      3.5%      5.7%
-#     454 - 2500     3.2%      5.1%      3.2%      4.0%
-
 headers = [col.name + (' ({0})'.format(col.units) if col.units else '')
           for col in params.columns]
 
 originalData = copy.deepcopy(params.data)
 print('ORIGINAL RESONANCE PARAMETERS')
-print(tabulate(originalData[4:6], headers=headers, tablefmt='grid') + '\n')
+print(tabulate(originalData[:6], headers=headers, tablefmt='grid') + '\n')
+
+# ==============================================================================
+header('(2) Modifying resonance parameters...')
+# ==============================================================================
 
 uCapture = 1.3e-3
 uFission = 0.1e-3
-resonance = 0.2956243
-row = energy.index(resonance)
+row = 4
 print('Uncertainty in 0.296 eV capture width = {0} eV'.format(uCapture))
 print('Uncertainty in 0.296 eV fissionA width = {0} eV'.format(uFission))
 
@@ -77,8 +75,7 @@ params.data[row][colFA] -= x*uFission
 
 uCapture = 4.4e-3
 uFission = 1.9e-3
-resonance = 7.8158
-row = energy.index(resonance)
+row = 5
 print('Uncertainty in 7.8 eV capture width = {0} eV'.format(uCapture))
 print('Uncertainty in 7.8 eV fissionA width = {0} eV\n'.format(uFission))
 
@@ -89,8 +86,105 @@ params.data[row][colFA] -= x*uFission
 print('MODIFIED RESONANCE PARAMETERS')
 print(tabulate(params.data[4:6], headers=headers, tablefmt='grid') + '\n')
 
+# Get capture and fission cross sections
+print('Reconstructing resonances...')
+eval.reconstructResonances()
+capture = eval.getReaction('capture').getCrossSection()['linear']
+fission = eval.getReaction('fission').getCrossSection()['linear']
+newCapture2200 = capture.getValue(0.0253)
+newFission2200 = fission.getValue(0.0253)
+changeCapture = (newCapture2200 - originalCapture2200) / originalCapture2200
+changeFission = (newFission2200 - originalFission2200) / originalFission2200
+print('Modified 2200 m/s capture xs = {0:.3f} b ({1:.3f}%)'.format(newCapture2200, changeCapture*100))
+print('Modified 2200 m/s fission xs = {0:.3f} b ({1:.3f}%)\n'.format(newFission2200, changeFission*100))
+
 # ==============================================================================
-header('(3) Modifying thermal prompt nubar...')
+header('(3) Modifying negative energy resonances...')
+# ==============================================================================
+
+# Determine 2200 m/s covariances for fission and capture
+covFission = cov.sections[12]
+uFission = covFission.getNativeData().getUncertaintyVector().getValue(0.0253)
+covCapture = cov.sections[19]
+uCapture = covCapture.getNativeData().getUncertaintyVector().getValue(0.0253)
+
+targetCapture = x*uCapture
+targetFission = -x*uFission
+print('Targeting a {0:.3f}% increase in 2200 m/s capture'.format(targetCapture*100).upper())
+print('Targeting a {0:.3f}% decrease in 2200 m/s fission\n'.format(targetFission*100).upper())
+
+initial_guess = 0.1
+xg = initial_guess*uCapture
+xf = initial_guess*uFission
+iteration = 1
+while True:
+    print('Iteration ' + str(iteration))
+    print('  Changing capture widths by {0:.1f}%'.format(xg*100))
+    print('  Changing fission widths by {0:.1f}%'.format(xf*100))
+
+    # Save original values
+    GG = [params.data[i][colG] for i in range(4)]
+    GFA = [params.data[i][colFA] for i in range(4)]
+    GFB = [params.data[i][colFB] for i in range(4)]
+
+    # Increase capture widths and decrease fission widths for negative energy
+    # resonances -- note that if the width is negative, we do the opposite
+    for row in range(4):
+        params.data[row][colG] *= 1 + xg
+        if params.data[row][colFA] > 0:
+            params.data[row][colFA] *= 1 - xf
+        else:
+            params.data[row][colFA] *= 1 + xf
+        if params.data[row][colFB] > 0:
+            params.data[row][colFB] *= 1 - xf
+        else:
+            params.data[row][colFB] *= 1 + xf
+
+    # Reconstruct resonances
+    print('  Reconstructing resonances...')
+    eval.reconstructResonances()
+
+    # Get 2200 m/s values
+    capture = eval.getReaction('capture').getCrossSection()['linear']
+    fission = eval.getReaction('fission').getCrossSection()['linear']
+    capture2200 = capture.getValue(0.0253)
+    fission2200 = fission.getValue(0.0253)
+
+    changeCapture = (capture2200 - newCapture2200) / newCapture2200
+    changeFission = (fission2200 - newFission2200) / newFission2200
+    print('  2200 m/s capture xs = {0:.3f} b ({1:.3f}%)'.format(capture2200, changeCapture*100))
+    print('  2200 m/s fission xs = {0:.3f} b ({1:.3f}%)'.format(fission2200, changeFission*100))
+
+    iteration += 1
+    if (abs(targetCapture/changeCapture - 1) < abs(targetCapture)*0.1 and
+        abs(targetFission/changeFission - 1) < abs(targetFission)*0.1):
+        break
+
+    # Reset partial widths
+    for row in range(4):
+        params.data[row][colG] = GG[row]
+        params.data[row][colFA] = GFA[row]
+        params.data[row][colFB] = GFB[row]
+
+    xg *= targetCapture/changeCapture
+    xf *= targetFission/changeFission
+
+# Print tables
+print('\nMODIFIED RESONANCE PARAMETERS')
+print(tabulate(params.data[:4], headers=headers, tablefmt='grid'))
+
+# Get capture and fission cross sections
+capture = eval.getReaction('capture').getCrossSection()['linear']
+fission = eval.getReaction('fission').getCrossSection()['linear']
+newCapture2200 = capture.getValue(0.0253)
+newFission2200 = fission.getValue(0.0253)
+changeCapture = (newCapture2200 - originalCapture2200) / originalCapture2200
+changeFission = (newFission2200 - originalFission2200) / originalFission2200
+print('Modified 2200 m/s capture xs = {0:.3f} b ({1:.3f}%)'.format(newCapture2200, changeCapture*100))
+print('Modified 2200 m/s fission xs = {0:.3f} b ({1:.3f}%)\n'.format(newFission2200, changeFission*100))
+
+# ==============================================================================
+header('(4) Modifying thermal prompt nubar...')
 # ==============================================================================
 
 # Determine 2200 m/s covariance for nubar
@@ -101,8 +195,7 @@ print('Uncertainty in 2200 m/s prompt fission nubar = {0:.3f}%'.format(
         uNubar*100))
 
 # Get prompt nubar
-fission = eval.getReaction('fission')
-promptN = fission.outputChannel.particles[0]
+promptN = eval.getReaction('fission').outputChannel.particles[0]
 nubar = promptN.multiplicity['pointwise']
 
 # Set constants for modification
@@ -114,7 +207,7 @@ for i, (energy, nu) in enumerate(nubar):
     nubar[i] = [energy, nu - x*uNubar*A*math.exp(-B*energy)]
 
 # ==============================================================================
-header('(4) Modifying prompt neutron fission spectra...')
+header('(5) Modifying prompt neutron fission spectra...')
 # ==============================================================================
 
 # Get prompt fission neutron spectrum from thermal fission
@@ -171,8 +264,19 @@ while True:
     xys.setDataFromXsAndYs(origX, origY)
     x *= target/change
 
-
 # ==============================================================================
+header('(6) Writing new ENDF file...')
+# ==============================================================================
+
+captureXS = zip(*capture[:])
+fissionXS = zip(*fission[:])
+
+plt.loglog(originalCaptureXS[0], originalCaptureXS[1])
+plt.loglog(captureXS[0], captureXS[1])
+plt.grid(True)
+plt.xlabel('Energy (eV)')
+plt.ylabel('Cross section (b)')
+plt.show()
 
 # Plot data
 #xm, ym = map(np.array, zip(*xys))
@@ -182,4 +286,4 @@ while True:
 
 # Write out modified ENDF file
 myENDF = eval.toENDF6({'verbosity': 0}, covarianceSuite=cov)
-open('junk.endf', 'w').write(myENDF)
+open('modified.endf', 'w').write(myENDF)
