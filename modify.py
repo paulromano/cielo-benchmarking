@@ -6,6 +6,7 @@ import math
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.interpolate import interp1d
 from tabulate import tabulate
 from fudge.legacy.converting.endfFileToGND import endfFileToGND
 
@@ -36,8 +37,8 @@ capture = eval.getReaction('capture').getCrossSection()['linear']
 fission = eval.getReaction('fission').getCrossSection()['linear']
 originalCapture2200 = capture.getValue(0.0253)
 originalFission2200 = fission.getValue(0.0253)
-originalCaptureXS = zip(*capture[:])
-originalFissionXS = zip(*fission[:])
+originalCaptureXS = np.asarray(capture.copyDataToXsAndYs())
+originalFissionXS = np.asarray(fission.copyDataToXsAndYs())
 print('Original 2200 m/s capture xs = {0:.3f} b'.format(originalCapture2200))
 print('Original 2200 m/s fission xs = {0:.3f} b'.format(originalFission2200))
 
@@ -60,8 +61,11 @@ print(tabulate(originalData[:6], headers=headers, tablefmt='grid') + '\n')
 header('(2) Modifying resonance parameters...')
 # ==============================================================================
 
+# Uncertainties in resonance parameters given by Gilles Noguerre. These are
+# supposedly from SG34 file 32.
+
 uCapture = 1.3e-3
-uFission = 0.1e-3
+uFission = 0.95e-3
 row = 4
 print('Uncertainty in 0.296 eV capture width = {0} eV'.format(uCapture))
 print('Uncertainty in 0.296 eV fissionA width = {0} eV'.format(uFission))
@@ -73,8 +77,8 @@ print('Uncertainty in 0.296 eV fissionA width = {0} eV'.format(uFission))
 params.data[row][colG] += x*uCapture
 params.data[row][colFA] -= x*uFission
 
-uCapture = 4.4e-3
-uFission = 1.9e-3
+uCapture = 2.1e-3
+uFission = 1.85e-3
 row = 5
 print('Uncertainty in 7.8 eV capture width = {0} eV'.format(uCapture))
 print('Uncertainty in 7.8 eV fissionA width = {0} eV\n'.format(uFission))
@@ -268,15 +272,18 @@ while True:
 header('(6) Writing new ENDF file...')
 # ==============================================================================
 
-captureXS = zip(*capture[:])
-fissionXS = zip(*fission[:])
+captureXS = np.asarray(capture.copyDataToXsAndYs())
+fissionXS = np.asarray(fission.copyDataToXsAndYs())
 
-plt.loglog(originalCaptureXS[0], originalCaptureXS[1])
-plt.loglog(captureXS[0], captureXS[1])
-plt.grid(True)
-plt.xlabel('Energy (eV)')
-plt.ylabel('Cross section (b)')
-plt.show()
+#interp = interp1d(originalCaptureXS[0], originalCaptureXS[1])
+#orig = interp(captureXS[0])
+
+#plt.loglog(originalCaptureXS[0], originalCaptureXS[1])
+#plt.loglog(captureXS[0], (captureXS[1] - orig)/orig)
+#plt.grid(True)
+#plt.xlabel('Energy (eV)')
+#plt.ylabel('Cross section (b)')
+#plt.show()
 
 # Plot data
 #xm, ym = map(np.array, zip(*xys))
