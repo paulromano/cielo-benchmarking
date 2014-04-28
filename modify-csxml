@@ -13,7 +13,7 @@ set -e
 cross_sections=cross_sections_nndc.xml
 
 # Add 'atomic weight ratios' to xsdir file
-sed -e '1i atomic weight ratios\ndirectory' -e 's/filename/ace/' -e 's/route/0/' xsdir > xsdir_mod
+sed -e '1i atomic weight ratios\ndirectory' -e "s|filename|$(pwd)/ace|" -e 's/route/0/' xsdir > xsdir_mod
 
 # Convert to OpenMC XML format and only keep relevant line
 $HOME/openmc/src/utils/convert_xsdir.py xsdir_mod pu239.xml

@@ -14,7 +14,7 @@ from fudge.legacy.converting.endfFileToGND import endfFileToGND
 endffile = 'endf-b-vii-1.endf'
 
 # This is the "change" parameter by which all data is adjusted
-x = 0.05
+x = 0.25
 
 def header(s):
     n = (77 - len(s))//2

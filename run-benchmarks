@@ -41,7 +41,7 @@ num=$(cat benchmark-list.txt | wc -l)
 i=0
 basedir=$PWD
 echo "Running benchmarks..."
-for benchmark in $(cat benchmark-list.txt | head -1); do
+for benchmark in $(cat short-list.txt); do
     # Update progress bar
     progress $i $num
     i=$(expr $i \+ 1)

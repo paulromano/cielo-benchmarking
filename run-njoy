@@ -43,7 +43,7 @@ purr / Process Unresolved Resonance Range if any
 0/
 acer / Prepare ACE files
 20 26 0 27 28
-1 0 1 .03 /
+1 0 1 .71 /
 '94-Pu-239 from ENDF/B-VII.1, NJOY99.396'/
 9437 300.
 1 1/
@@ -69,3 +69,6 @@ done
 # Rename ACE file and xsdir
 mv tape27 ace
 mv tape28 xsdir
+
+# Convert ACE file to binary
+/home/romano/openmc/src/utils/convert_binary.py ace ace

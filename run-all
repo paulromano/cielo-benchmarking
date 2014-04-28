@@ -4,7 +4,7 @@
 python modify.py
 
 # 2) Run NJOY
-./run-njoy
+./run-njoy modified.endf
 
 # 3) Modify cross sections for OpenMC use
 ./modify-csxml
