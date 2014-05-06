@@ -99,8 +99,8 @@ newCapture2200 = capture.getValue(0.0253)
 newFission2200 = fission.getValue(0.0253)
 changeCapture = (newCapture2200 - originalCapture2200) / originalCapture2200
 changeFission = (newFission2200 - originalFission2200) / originalFission2200
-print('Modified 2200 m/s capture xs = {0:.3f} b ({1:.3f}%)'.format(newCapture2200, changeCapture*100))
-print('Modified 2200 m/s fission xs = {0:.3f} b ({1:.3f}%)\n'.format(newFission2200, changeFission*100))
+print('Modified 2200 m/s capture xs = {0:.3f} b ({1:.3%})'.format(newCapture2200, changeCapture))
+print('Modified 2200 m/s fission xs = {0:.3f} b ({1:.3%})\n'.format(newFission2200, changeFission))
 
 # ==============================================================================
 header('(3) Modifying negative energy resonances...')
@@ -112,10 +112,15 @@ uFission = covFission.getNativeData().getUncertaintyVector().getValue(0.0253)
 covCapture = cov.sections[19]
 uCapture = covCapture.getNativeData().getUncertaintyVector().getValue(0.0253)
 
+print('Uncertainty in 2200 m/s capture = {0:.2f} eV ({1:.2%})'.format(
+        uCapture*originalCapture2200, uCapture))
+print('Uncertainty in 2200 m/s fission = {0:.2f} eV ({1:.2%})'.format(
+        uFission*originalFission2200, uFission))
+
 targetCapture = x*uCapture
 targetFission = -x*uFission
-print('Targeting a {0:.3f}% increase in 2200 m/s capture'.format(targetCapture*100).upper())
-print('Targeting a {0:.3f}% decrease in 2200 m/s fission\n'.format(targetFission*100).upper())
+print('Targeting a {0:.3%} increase in 2200 m/s capture'.format(targetCapture).upper())
+print('Targeting a {0:.3%} decrease in 2200 m/s fission\n'.format(targetFission).upper())
 
 initial_guess = 0.1
 xg = initial_guess*uCapture
@@ -123,8 +128,8 @@ xf = initial_guess*uFission
 iteration = 1
 while True:
     print('Iteration ' + str(iteration))
-    print('  Changing capture widths by {0:.1f}%'.format(xg*100))
-    print('  Changing fission widths by {0:.1f}%'.format(xf*100))
+    print('  Changing capture widths by {0:.1%}'.format(xg))
+    print('  Changing fission widths by {0:.1%}'.format(xf))
 
     # Save original values
     GG = [params.data[i][colG] for i in range(4)]
@@ -156,8 +161,8 @@ while True:
 
     changeCapture = (capture2200 - newCapture2200) / newCapture2200
     changeFission = (fission2200 - newFission2200) / newFission2200
-    print('  2200 m/s capture xs = {0:.3f} b ({1:.3f}%)'.format(capture2200, changeCapture*100))
-    print('  2200 m/s fission xs = {0:.3f} b ({1:.3f}%)'.format(fission2200, changeFission*100))
+    print('  2200 m/s capture xs = {0:.3f} b ({1:.3%})'.format(capture2200, changeCapture))
+    print('  2200 m/s fission xs = {0:.3f} b ({1:.3%})'.format(fission2200, changeFission))
 
     iteration += 1
     if (abs(targetCapture/changeCapture - 1) < abs(targetCapture)*0.1 and
@@ -184,8 +189,8 @@ newCapture2200 = capture.getValue(0.0253)
 newFission2200 = fission.getValue(0.0253)
 changeCapture = (newCapture2200 - originalCapture2200) / originalCapture2200
 changeFission = (newFission2200 - originalFission2200) / originalFission2200
-print('Modified 2200 m/s capture xs = {0:.3f} b ({1:.3f}%)'.format(newCapture2200, changeCapture*100))
-print('Modified 2200 m/s fission xs = {0:.3f} b ({1:.3f}%)\n'.format(newFission2200, changeFission*100))
+print('Modified 2200 m/s capture xs = {0:.3f} b ({1:.3%})'.format(newCapture2200, changeCapture))
+print('Modified 2200 m/s fission xs = {0:.3f} b ({1:.3%})\n'.format(newFission2200, changeFission))
 
 # ==============================================================================
 header('(4) Modifying thermal prompt nubar...')
@@ -195,12 +200,13 @@ header('(4) Modifying thermal prompt nubar...')
 covNubar = cov.sections[0]
 uncvNubar = covNubar.getNativeData().getUncertaintyVector()
 uNubar = uncvNubar.getValue(0.0253)
-print('Uncertainty in 2200 m/s prompt fission nubar = {0:.3f}%'.format(
-        uNubar*100))
 
 # Get prompt nubar
 promptN = eval.getReaction('fission').outputChannel.particles[0]
 nubar = promptN.multiplicity['pointwise']
+
+print('Uncertainty in 2200 m/s prompt fission nubar = {0:.3f} ({1:.3%})\n'.format(
+        uNubar*nubar.getValue(0.0253), uNubar))
 
 # Set constants for modification
 A = 1.0608
@@ -230,19 +236,19 @@ uAverage = 30.0e3
 originalAvgE = xys.integrateWithWeight_x()
 origX, origY = xys.copyDataToXsAndYs()
 
-print('Uncertainty in PFNS average energy = {0:.3f} keV ({1:.2f}%)'.format(
-        uAverage/1e3, uAverage/originalAvgE*100))
+print('Uncertainty in PFNS average energy = {0:.3f} keV ({1:.2%})'.format(
+        uAverage/1e3, uAverage/originalAvgE))
 
 target = x*uAverage/originalAvgE
 initial_guess = 0.5
 x = initial_guess*target
 iteration = 0
-print('Targeting a {0:.3f}% increase in PFNS average energy ({1:.4f} MeV)'.format(
-        target*100, originalAvgE*1e-6*(1 + target)).upper())
+print('Targeting a {0:.3%} increase in PFNS average energy ({1:.4f} MeV)'.format(
+        target, originalAvgE*1e-6*(1 + target)).upper())
 
 while True:
     print('Iteration ' + str(iteration))
-    print('  Changing Watt parameter by {0:.2f}%'.format(x*100))
+    print('  Changing Watt parameter by {0:.2%}'.format(x))
 
     # Modify each probability by ratio of Watt spectra
     for i, (energy, prob) in enumerate(xys):
@@ -258,8 +264,8 @@ while True:
     avgE = xys.integrateWithWeight_x()
     change = (avgE - originalAvgE)/originalAvgE
 
-    print('  PFNS average energy = {0:.4f} MeV ({1:.3f}%)'.format(
-            avgE*1e-6, change*100))
+    print('  PFNS average energy = {0:.4f} MeV ({1:.3%})'.format(
+            avgE*1e-6, change))
 
     iteration += 1
     if (abs(target/change - 1) < abs(target)*0.1):
