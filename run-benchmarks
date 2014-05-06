@@ -2,6 +2,7 @@
 
 #set -e
 
+xsxml=/opt/data/ace/nndc/cross_sections.xml
 list=benchmark-list.txt
 particles=1000
 batches=300
@@ -55,7 +56,7 @@ for benchmark in $(cat $list); do
     # Run openmc
     cd benchmarks/${benchmark}
     output=output_$(date +"%Y-%m-%d-%H%M%S")
-    openmc > $output 2>&1 &
+    CROSS_SECTIONS=${xsxml} openmc > $output 2>&1 &
     wait $!
     cd $basedir
 
@@ -72,5 +73,15 @@ progress $num $num
 echo -ne "\n"
 
 # Convert results to spreadsheet
+echo Converting results to .xls...
 python make-xls.py results_$currtime
-rm results_$currtime
+status=$?
+
+# Create archive of outputs
+echo Creating archive_${currtime}.tar.gz
+find . -name "*${currtime}*" | cut -c3- | xargs tar czf archive_${currtime}.tar.gz
+
+# Remove text file
+if [[ $status -eq 0 ]]; then
+    rm results_$currtime
+fi
