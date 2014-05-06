@@ -1,6 +1,11 @@
 #!/bin/bash
 
-set -e
+#set -e
+
+list=benchmark-list.txt
+particles=1000
+batches=300
+inactive=50
 
 # Write progress bar
 function progress {
@@ -30,18 +35,19 @@ fi
 
 # Prepare benchmarks
 echo Modifying run parameters...
-for benchmark in $(cat benchmark-list.txt); do
-    sed -i -r -e "s:(<particles>).*(</particles>):\11000\2:g" \
-        -e "s:(<inactive>).*(</inactive>):\110\2:g" \
-        -e "s:(<batches>).*(</batches>):\120\2:g" benchmarks/${benchmark}/settings.xml
+for benchmark in $(cat $list); do
+    sed -i -r -e "s:(<particles>).*(</particles>):\1${particles}\2:g" \
+        -e "s:(<inactive>).*(</inactive>):\1${inactive}\2:g" \
+        -e "s:(<batches>).*(</batches>):\1${batches}\2:g" \
+        benchmarks/${benchmark}/settings.xml
 done
 
 # Run benchmarks
-num=$(cat benchmark-list.txt | wc -l)
+num=$(cat $list | wc -l)
 i=0
 basedir=$PWD
 echo "Running benchmarks..."
-for benchmark in $(cat short-list.txt); do
+for benchmark in $(cat $list); do
     # Update progress bar
     progress $i $num
     i=$(expr $i \+ 1)
@@ -49,7 +55,7 @@ for benchmark in $(cat short-list.txt); do
     # Run openmc
     cd benchmarks/${benchmark}
     output=output_$(date +"%Y-%m-%d-%H%M%S")
-    openmc > $output &
+    openmc > $output 2>&1 &
     wait $!
     cd $basedir
 
