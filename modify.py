@@ -17,6 +17,7 @@ endffile = 'endf-b-vii-1.endf'
 
 # This is the "change" parameter by which all data is adjusted
 x = 0.25
+print('Target: {0}\n'.format(x))
 
 def header(s):
     n = (77 - len(s))//2
