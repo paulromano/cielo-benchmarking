@@ -5,6 +5,11 @@ if [[ $# -lt 1 ]]; then
     exit
 fi
 
+# Change directory if supplied
+if [[ $# -ge 2 ]]; then
+    cd $2
+fi
+
 # Copy ENDF file to name NJOY will recognize
 cp $1 tape20
 
@@ -66,9 +71,10 @@ for i in 20 22 23 24 25 61 26; do
     rm -f tape$i
 done
 
-# Rename ACE file and xsdir
+# Rename ACE file, xsdir, and NJOY output
 mv tape27 ace
 mv tape28 xsdir
+mv output njoy.out
 
 # Convert ACE file to binary
 /home/romano/openmc/src/utils/convert_binary.py ace ace

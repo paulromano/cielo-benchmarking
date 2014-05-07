@@ -1,13 +1,23 @@
 #!/bin/bash
 
+set -e
+
+# Create new directory for run
+if [[ $# -ge 1 ]]; then
+    directory=$!
+else
+    directory=$(date +"%Y-%m-%d-%H%M%S")
+fi
+mkdir -p $directory
+
 # 1) Make modifications to Pu-239 cross sections
-python modify.py
+python modify.py ${directory} | tee ${directory}/modified.out
 
 # 2) Run NJOY
-./run-njoy modified.endf
+./run-njoy modified.endf ${directory} | tee ${directory}/run-njoy.out
 
 # 3) Modify cross sections for OpenMC use
-./modify-csxml
+./modify-csxml ${directory}
 
 # 4) Run benchmarks
-./run-benchmarks
+./run-benchmarks ${directory}

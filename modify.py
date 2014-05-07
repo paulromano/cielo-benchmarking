@@ -3,6 +3,8 @@
 from __future__ import print_function
 import copy
 import math
+import os
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -299,4 +301,10 @@ fissionXS = np.asarray(fission.copyDataToXsAndYs())
 
 # Write out modified ENDF file
 myENDF = eval.toENDF6({'verbosity': 0}, covarianceSuite=cov)
-open('modified.endf', 'w').write(myENDF)
+filename = 'modified.endf'
+if len(sys.argv) > 1:
+    directory = sys.argv[1]
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+    filename = os.path.join(directory, filename)
+open(filename, 'w').write(myENDF)

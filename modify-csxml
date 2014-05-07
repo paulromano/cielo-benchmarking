@@ -10,7 +10,11 @@
 
 set -e
 
-cross_sections=cross_sections_nndc.xml
+cross_sections=$(pwd)/cross_sections_nndc.xml
+
+if [[ $# -ge 1 ]]; then
+    cd $1
+fi
 
 # Add 'atomic weight ratios' to xsdir file
 sed -e '1i atomic weight ratios\ndirectory' -e "s|filename|$(pwd)/ace|" -e 's/route/0/' xsdir > xsdir_mod

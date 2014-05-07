@@ -2,11 +2,22 @@
 
 #set -e
 
-xsxml=/opt/data/ace/nndc/cross_sections.xml
 list=benchmark-list.txt
 particles=1000
 batches=300
 inactive=50
+
+if [[ $# -eq 1 ]]; then
+    directory=$1
+    xsxml=$(pwd)/${directory}/cross_sections_new.xml
+else
+    directory=$time
+    xsxml=/opt/data/ace/nndc/cross_sections.xml
+fi
+mkdir -p $directory
+
+
+time=$(date +"%Y-%m-%d-%H%M%S")
 
 # Write progress bar
 function progress {
@@ -23,8 +34,6 @@ function progress {
     for j in $(seq 1 $nobars); do echo -ne "."; done
     echo -ne "]\r"
 }
-
-currtime=$(date +"%Y-%m-%d-%H%M%S")
 
 # Make sure runs are killed if script aborts
 trap 'kill $(jobs -p) 2>/dev/null' EXIT
@@ -55,7 +64,7 @@ for benchmark in $(cat $list); do
 
     # Run openmc
     cd benchmarks/${benchmark}
-    output=output_$(date +"%Y-%m-%d-%H%M%S")
+    output=output_$time
     CROSS_SECTIONS=${xsxml} openmc > $output 2>&1 &
     wait $!
     cd $basedir
@@ -65,7 +74,7 @@ for benchmark in $(cat $list); do
         sed -r -e 's_.*=(.*)\+/-.*_\1_g')
     stdev=$(cat benchmarks/${benchmark}/$output | grep Combined | \
         sed -r -e 's_.*\+/-(.*)_\1_g')
-    echo $benchmark $keff $stdev >> results_$currtime
+    echo $benchmark $keff $stdev >> ${directory}/results
 done
 
 # Display 100% on progress bar
@@ -74,14 +83,9 @@ echo -ne "\n"
 
 # Convert results to spreadsheet
 echo Converting results to .xls...
-python make-xls.py results_$currtime
+python make-xls.py ${directory}/results
 status=$?
 
 # Create archive of outputs
-echo Creating archive_${currtime}.tar.gz
-find . -name "*${currtime}*" | cut -c3- | xargs tar czf archive_${currtime}.tar.gz
-
-# Remove text file
-if [[ $status -eq 0 ]]; then
-    rm results_$currtime
-fi
+echo Creating ${directory}/results_output.tar.gz
+find . -name "output_${time}" | cut -c3- | xargs tar czf ${directory}/results_output.tar.gz
