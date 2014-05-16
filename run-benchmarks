@@ -40,7 +40,7 @@ trap 'kill $(jobs -p) 2>/dev/null' EXIT
 
 # Get copy of benchmarks repository
 if [[ ! -d benchmarks ]]; then
-    git clone https://github.com/mit-crpg/benchmarks.git
+    git clone git@github.com:mit-crpg/benchmarks.git
 fi
 
 # Prepare benchmarks
