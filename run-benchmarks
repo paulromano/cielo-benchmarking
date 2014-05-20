@@ -2,9 +2,9 @@
 
 #set -e
 
-list=benchmark-list.txt
+list=short-list.txt
 particles=1000
-batches=300
+batches=550
 inactive=50
 
 if [[ $# -eq 1 ]]; then
@@ -52,6 +52,9 @@ for benchmark in $(cat $list); do
         benchmarks/${benchmark}/settings.xml
 done
 
+# Remove previous results if they exist
+rm -f ${directory}/results
+
 # Run benchmarks
 num=$(cat $list | wc -l)
 i=0
@@ -67,6 +70,7 @@ for benchmark in $(cat $list); do
     output=output_$time
     CROSS_SECTIONS=${xsxml} openmc > $output 2>&1 &
     wait $!
+    mv tallies.out tallies_$time
     cd $basedir
 
     # Get k-effective
@@ -88,4 +92,5 @@ status=$?
 
 # Create archive of outputs
 echo Creating ${directory}/results_output.tar.gz
-find . -name "output_${time}" | cut -c3- | xargs tar czf ${directory}/results_output.tar.gz
+find . -name "output_${time}" -o -name "tallies_${time}" | cut -c3- \
+    | xargs tar czf ${directory}/results_output.tar.gz
