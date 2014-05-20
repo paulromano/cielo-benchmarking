@@ -38,9 +38,13 @@ function progress {
 # Make sure runs are killed if script aborts
 trap 'kill $(jobs -p) 2>/dev/null' EXIT
 
-# Get copy of benchmarks repository
+# Get copy of benchmarks repository and switch to nndc branch
 if [[ ! -d benchmarks ]]; then
     git clone git@github.com:mit-crpg/benchmarks.git
+    cd benchmarks
+    git branch --track nndc origin/nndc
+    git checkout nndc
+    cd ..
 fi
 
 # Prepare benchmarks
