@@ -57,8 +57,8 @@ cov   = t1['covarianceSuite']
 eval2 = t2['reactionSuite']
 
 # Reconstruct resonance
-eval1.reconstructResonances()
-eval2.reconstructResonances()
+eval1.reconstructResonances(accuracy=1e-4)
+eval2.reconstructResonances(accuracy=1e-4)
 
 # Get cross sections
 capture_xs1 = eval1.getReaction('capture').getCrossSection()['linear'].copyDataToXsAndYs()
