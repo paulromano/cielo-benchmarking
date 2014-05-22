@@ -2,6 +2,9 @@
 
 set -e
 
+target=0.13
+options="--low-e --negative --nubar --pfns"
+
 # Create new directory for run
 if [[ $# -ge 1 ]]; then
     directory=$!
@@ -11,7 +14,8 @@ fi
 mkdir -p $directory
 
 # 1) Make modifications to Pu-239 cross sections
-python modify.py ${directory} | tee ${directory}/modified.out
+python modify.py endf-b-vii-1.endf ${directory}/modified.endf \
+    $target $options | tee ${directory}/modified.out
 
 # 2) Run NJOY
 ./run-njoy modified.endf ${directory} | tee ${directory}/run-njoy.out
