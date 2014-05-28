@@ -2,10 +2,10 @@
 
 #set -e
 
-list=short-list.txt
-particles=1000
-batches=550
-inactive=50
+: ${list:=short-list.txt}
+: ${particles:=1000}
+: ${batches:=550}
+: ${inactive:=50}
 
 if [[ $# -eq 1 ]]; then
     directory=$1
