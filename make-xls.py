@@ -23,8 +23,10 @@ with open(sys.argv[1], 'r') as f:
 
 sheet.write(row+1, 0, "AVERAGE")
 cells = "B{0}:B{1}".format(1, row+1)
+cellsStdev = "C{0}:C{1}".format(1, row+1)
 sheet.write(row+1, 1, xlwt.Formula("AVERAGE({0})".format(cells)))
-sheet.write(row+1, 2, xlwt.Formula("STDEV({0})/SQRT(COUNT({0}))".format(cells)))
+sheet.write(row+1, 2, xlwt.Formula("SQRT(SUMSQ({0}))/COUNT({0})".format(
+            cellsStdev)))
 
 sheet.col(0).width = 256*40
 book.save(sys.argv[1] + '.xls')
