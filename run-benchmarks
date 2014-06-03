@@ -78,9 +78,9 @@ for benchmark in $(cat $list); do
     cd $basedir
 
     # Get k-effective
-    keff=$(cat benchmarks/${benchmark}/$output | grep Combined | \
+    keff=$(cat benchmarks/${benchmark}/$output | grep -a Combined | \
         sed -r -e 's_.*=(.*)\+/-.*_\1_g')
-    stdev=$(cat benchmarks/${benchmark}/$output | grep Combined | \
+    stdev=$(cat benchmarks/${benchmark}/$output | grep -a Combined | \
         sed -r -e 's_.*\+/-(.*)_\1_g')
     echo $benchmark $keff $stdev >> ${directory}/results
 done
