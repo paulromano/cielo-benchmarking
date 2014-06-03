@@ -13,9 +13,9 @@ import xlrd
 # Parse command line arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('xlsfiles', nargs='+', help='Path to XLS file')
-parser.add_argument('-s', '--save', action='store_true',
-                    help='Save figure rather than showing it')
-parser.add_argument('-r', '--region', action='store_true',
+parser.add_argument('-f', '--file', action='store',
+                    help='Filename to save figure to')
+parser.add_argument('-s', '--shade', action='store_true',
                     help='Show uncertainty of mean in shaded region')
 parser.add_argument('-e', '--error', action='store_true',
                     help='Show error bars on individual points')
@@ -63,7 +63,7 @@ for i in range(len(x)):
     mu = sum(keff[i])/len(keff[i])
     sigma = sqrt(sum([s**2 for s in stdev[i]]))/len(stdev[i])
 
-    if args.region:
+    if args.shade:
         ax = plt.gca()
         verts = [(-1, mu - sigma), (-1, mu + sigma), (n, mu + sigma), (n, mu - sigma)]
         poly = Polygon(verts, facecolor=colors[i], alpha=0.5)
@@ -83,5 +83,8 @@ plt.ylabel('k-effective', fontsize=16)
 plt.gcf().set_size_inches(17,6)
 if args.title:
     plt.title(args.title)
-plt.show()
-#plt.savefig('benchmarks.pdf', bbox_inches='tight')
+
+if args.file:
+    plt.savefig(args.file, bbox_inches='tight')
+else:
+    plt.show()
