@@ -14,12 +14,16 @@ with open(sys.argv[1], 'r') as f:
     for row, line in enumerate(f):
         words = line.split()
         benchmark = words[0]
-        keff = float(words[1])
-        stdev = float(words[2])
+        k_mean = float(words[1])
+        k_unc = float(words[2])
+        leak_mean = float(words[3])
+        leak_unc = float(words[4])
 
         sheet.write(row, 0, benchmark)
-        sheet.write(row, 1, keff)
-        sheet.write(row, 2, stdev)
+        sheet.write(row, 1, k_mean)
+        sheet.write(row, 2, k_unc)
+        sheet.write(row, 3, leak_mean)
+        sheet.write(row, 4, leak_unc)
 
 sheet.write(row+1, 0, "AVERAGE")
 cells = "B{0}:B{1}".format(1, row+1)

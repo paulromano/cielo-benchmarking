@@ -7,6 +7,8 @@
 : ${batches:=550}
 : ${inactive:=50}
 
+time=$(date +"%Y-%m-%d-%H%M%S")
+
 if [[ $# -eq 1 ]]; then
     directory=$1
     xsxml=$(pwd)/${directory}/cross_sections_new.xml
@@ -15,9 +17,6 @@ else
     xsxml=/opt/data/ace/nndc/cross_sections.xml
 fi
 mkdir -p $directory
-
-
-time=$(date +"%Y-%m-%d-%H%M%S")
 
 # Write progress bar
 function progress {
@@ -78,11 +77,15 @@ for benchmark in $(cat $list); do
     cd $basedir
 
     # Get k-effective
-    keff=$(cat benchmarks/${benchmark}/$output | grep -a Combined | \
+    k_mean=$(cat benchmarks/${benchmark}/$output | grep -a Combined | \
         sed -r -e 's_.*=(.*)\+/-.*_\1_g')
-    stdev=$(cat benchmarks/${benchmark}/$output | grep -a Combined | \
+    k_unc=$(cat benchmarks/${benchmark}/$output | grep -a Combined | \
         sed -r -e 's_.*\+/-(.*)_\1_g')
-    echo $benchmark $keff $stdev >> ${directory}/results
+    leak_mean=$(cat benchmarks/${benchmark}/$output | grep -a Leakage | \
+        sed -r -e 's_.*=(.*)\+/-.*_\1_g')
+    leak_unc=$(cat benchmarks/${benchmark}/$output | grep -a Leakage | \
+        sed -r -e 's_.*\+/-(.*)_\1_g')
+    echo $benchmark $k_mean $k_unc $leak_mean $leak_unc >> ${directory}/results
 done
 
 # Display 100% on progress bar
