@@ -132,6 +132,7 @@ class Evaluation(object):
         xg = initial_guess*uCapture
         xf = initial_guess*uFission
         iteration = 1
+        j = len(self.capture) - 1
         while True:
             print('Iteration ' + str(iteration))
             print('  Changing capture widths by {0:.1%}'.format(xg))
@@ -158,8 +159,8 @@ class Evaluation(object):
             # Reconstruct resonances
             self._get_2200_values()
 
-            changeCapture = (self.capture[-1] - self.capture[1]) / self.capture[1]
-            changeFission = (self.fission[-1] - self.fission[1]) / self.fission[1]
+            changeCapture = (self.capture[-1] - self.capture[j]) / self.capture[j]
+            changeFission = (self.fission[-1] - self.fission[j]) / self.fission[j]
             print('  2200 m/s capture xs = {0:.3f} b ({1:.3%})'.format(self.capture[-1], changeCapture))
             print('  2200 m/s fission xs = {0:.3f} b ({1:.3%})'.format(self.fission[-1], changeFission))
 
