@@ -65,7 +65,7 @@ for i in range(len(x)):
 
     if args.shade:
         ax = plt.gca()
-        verts = [(-1, mu - sigma), (-1, mu + sigma), (n, mu + sigma), (n, mu - sigma)]
+        verts = [(0, mu - sigma), (0, mu + sigma), (n+1, mu + sigma), (n+1, mu - sigma)]
         poly = Polygon(verts, facecolor=colors[i], alpha=0.5)
         ax.add_patch(poly)
     else:
@@ -73,8 +73,8 @@ for i in range(len(x)):
 
 # Configure plot
 ax = plt.gca()
-plt.xticks(range(n), labels.keys(), rotation='vertical')
-plt.xlim((-1,n))
+plt.xticks(range(1,n+1), labels.keys(), rotation='vertical')
+plt.xlim((0,n+1))
 plt.subplots_adjust(bottom=0.30)
 plt.setp(ax.get_xticklabels(), fontsize=10)
 plt.grid(True, which='both', color='lightgray', ls='-', alpha=0.7)
