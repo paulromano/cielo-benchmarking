@@ -3,7 +3,7 @@
 set -e
 
 target=0.13
-options="--low-e --negative --nubar --pfns"
+options="--capture-03 --fission-03 --capture-78 --fission-78 --negative --nubar --pfns"
 
 # Create new directory for run
 if [[ $# -ge 1 ]]; then

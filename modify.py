@@ -31,6 +31,15 @@ class Evaluation(object):
         self.fission = []
         self._get_2200_values()
 
+        # Get original RM parameters
+        rSuite = self.endf['reactionSuite']
+        params = rSuite.resonances.resolved.regions[0].nativeData.resonanceParameters
+        columnNames = [col.name for col in params.columns]
+        self.headers = [col.name + (' ({0})'.format(col.units) if col.units else '')
+                   for col in params.columns]
+        print('ORIGINAL RESONANCE PARAMETERS')
+        print(tabulate(params.data[:6], headers=self.headers, tablefmt='grid') + '\n')
+
     def _get_2200_values(self):
         print('Reconstructing resonances...')
         rSuite = self.endf['reactionSuite']
@@ -40,7 +49,7 @@ class Evaluation(object):
         self.fission.append(rSuite.getReaction('fission')\
                                 .getCrossSection()['linear'].getValue(0.0253))
 
-    def modify_lowE_resonances(self):
+    def modify_lowE_resonances(self, args):
         # Get capture and fission cross sections
         print('Original 2200 m/s capture xs = {0:.3f} b'.format(self.capture[0]))
         print('Original 2200 m/s fission xs = {0:.3f} b'.format(self.fission[0]))
@@ -48,49 +57,46 @@ class Evaluation(object):
         # Get RM parameters, column indices for partial-widths
         rSuite = self.endf['reactionSuite']
         params = rSuite.resonances.resolved.regions[0].nativeData.resonanceParameters
-
         columnNames = [col.name for col in params.columns]
+        colE = columnNames.index('energy')
         colN = columnNames.index('neutronWidth')
         colG = columnNames.index('captureWidth')
         colFA = columnNames.index('fissionWidthA')
         colFB = columnNames.index('fissionWidthB')
-        headers = [col.name + (' ({0})'.format(col.units) if col.units else '')
-                   for col in params.columns]
-
-        originalData = copy.deepcopy(params.data)
-        print('ORIGINAL RESONANCE PARAMETERS')
-        print(tabulate(originalData[:6], headers=headers, tablefmt='grid') + '\n')
 
         header('Modifying resonance parameters...')
 
         # Uncertainties in resonance parameters given by Gilles Noguerre. These are
         # supposedly from SG34 file 32.
 
-        uCapture = 1.3e-3
-        uFission = 0.95e-3
-        row = 4
-        print('Uncertainty in 0.296 eV capture width = {0} eV'.format(uCapture))
-        print('Uncertainty in 0.296 eV fissionA width = {0} eV'.format(uFission))
+        if args.capture_03 or args.fission_03:
+            uCapture = 1.3e-3
+            uFission = 0.95e-3
+            row = 4
+            print('Uncertainty in 0.296 eV capture width = {0} eV'.format(uCapture))
+            print('Uncertainty in 0.296 eV fissionA width = {0} eV'.format(uFission))
 
-        # Increase radiation width for 0.3 eV resonance and decrease fission widths for
-        # 0.3 eV resonance -- note that for both this resonance and the 7.8 eV
-        # resonance, the second-chance fission partial-width is zero already so it
-        # doesn't need to be adjusted
-        params.data[row][colG] += self.target*uCapture
-        params.data[row][colFA] -= self.target*uFission
+            # Increase radiation width / decrease fission widths 
+            if args.capture_03:
+                params.data[row][colG] += self.target*uCapture
+            if args.fission_03:
+                params.data[row][colFA] -= self.target*uFission
 
-        uCapture = 2.1e-3
-        uFission = 1.85e-3
-        row = 5
-        print('Uncertainty in 7.8 eV capture width = {0} eV'.format(uCapture))
-        print('Uncertainty in 7.8 eV fissionA width = {0} eV\n'.format(uFission))
+        if args.capture_78 or args.fission_78:
+            uCapture = 2.1e-3
+            uFission = 1.85e-3
+            row = 5
+            print('Uncertainty in 7.8 eV capture width = {0} eV'.format(uCapture))
+            print('Uncertainty in 7.8 eV fissionA width = {0} eV\n'.format(uFission))
 
-        # Increase radiation width and decrease fission width for 7.8 eV resonance
-        params.data[row][colG] += self.target*uCapture
-        params.data[row][colFA] -= self.target*uFission
+            # Increase radiation width / decrease fission widths 
+            if args.capture_78:
+                params.data[row][colG] += self.target*uCapture
+            if args.fission_78:
+                params.data[row][colFA] -= self.target*uFission
 
         print('MODIFIED RESONANCE PARAMETERS')
-        print(tabulate(params.data[4:6], headers=headers, tablefmt='grid') + '\n')
+        print(tabulate(params.data[4:6], headers=self.headers, tablefmt='grid') + '\n')
 
         # Get capture and fission cross sections
         self._get_2200_values()
@@ -180,7 +186,7 @@ class Evaluation(object):
 
         # Print tables
         print('\nMODIFIED RESONANCE PARAMETERS')
-        print(tabulate(params.data[:4], headers=headers, tablefmt='grid'))
+        print(tabulate(params.data[:4], headers=self.headers, tablefmt='grid'))
 
         # Get capture and fission cross sections
         changeCapture = (self.capture[-1] - self.capture[0]) / self.capture[0]
@@ -282,7 +288,10 @@ if __name__ == '__main__':
     parser.add_argument('endf', help='ENDF file to modify')
     parser.add_argument('endfModified', help='Modified ENDF file')
     parser.add_argument('target', type=float, help='Target percentage change')
-    parser.add_argument('--low-e', action='store_true', help='Modify low energy resonances')
+    parser.add_argument('--capture-03', action='store_true', help='Increase 0.3 eV capture width')
+    parser.add_argument('--fission-03', action='store_true', help='Decrease 0.3 eV fission width')
+    parser.add_argument('--capture-78', action='store_true', help='Increase 7.8 eV capture width')
+    parser.add_argument('--fission-78', action='store_true', help='Decrease 7.8 eV fission width')
     parser.add_argument('--negative', action='store_true', help='Modify negative energy resonances')
     parser.add_argument('--nubar', action='store_true', help='Modify nubar')
     parser.add_argument('--pfns', action='store_true', help='Modify prompt fission neutron spectrum')
@@ -292,7 +301,8 @@ if __name__ == '__main__':
     pu239 = Evaluation(args.endf, args.target)
 
     # Make modifications
-    if args.low_e: pu239.modify_lowE_resonances()
+    lowE = (args.capture_03 or args.fission_03 or args.capture_78 or args.fission_78)
+    if lowE: pu239.modify_lowE_resonances(args)
     if args.negative: pu239.modify_negative_resonances()
     if args.nubar: pu239.modify_nubar()
     if args.pfns: pu239.modify_fission_spectrum()
