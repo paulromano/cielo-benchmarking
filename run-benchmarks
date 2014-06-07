@@ -2,7 +2,7 @@
 
 #set -e
 
-: ${list:=short-list.txt}
+: ${list:=benchmark-list-o16.txt}
 : ${particles:=1000}
 : ${batches:=550}
 : ${inactive:=50}
