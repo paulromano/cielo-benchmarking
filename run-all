@@ -2,20 +2,22 @@
 
 set -e
 
-target=0.13
-options="--capture-03 --fission-03 --capture-78 --fission-78 --negative --nubar --pfns"
+# Get name of ENDF file
+if [[ $# -lt 1 ]]; then
+    echo "Need to specify ENDF filename"
+    exit 1
+fi
 
 # Create new directory for run
-if [[ $# -ge 1 ]]; then
-    directory=$!
+if [[ $# -ge 2 ]]; then
+    directory=$2
 else
     directory=$(date +"%Y-%m-%d-%H%M%S")
 fi
 mkdir -p $directory
 
-# 1) Make modifications to Pu-239 cross sections
-python modify.py endf-b-vii-1.endf ${directory}/modified.endf \
-    $target $options | tee ${directory}/modified.out
+# 1) Copy modified file
+cp $1 ${directory}/modified.endf
 
 # 2) Run NJOY
 ./run-njoy modified.endf ${directory} | tee ${directory}/run-njoy.out
