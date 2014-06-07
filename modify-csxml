@@ -20,7 +20,7 @@ fi
 sed -e '1i atomic weight ratios\ndirectory' -e "s|filename|$(pwd)/ace|" -e 's/route/0/' xsdir > xsdir_mod
 
 # Convert to OpenMC XML format and only keep relevant line
-$HOME/openmc/src/utils/convert_xsdir.py xsdir_mod o16.xml
+$(dirname $(which openmc))/../../utils/convert_xsdir.py xsdir_mod o16.xml
 sed -i -n -e '/O-16/ p' o16.xml
 
 # Get line number for O-16 entry
