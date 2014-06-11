@@ -52,13 +52,16 @@ for xls in args.xlsfiles:
     for i in range(sheet.nrows - 1):
         words = sheet.cell(i, 0).value.split('/')
         benchmark = words[1] + '/' + words[3]
-        if benchmark in labels:
-            count = labels[benchmark]
+        model, case = benchmark.split('/')
+        volume, form, spectrum, number = model.split('-')
+        abbreviation = volume[0] + form[0] + spectrum[0]
+        name = '{}{}-{}'.format(abbreviation, int(number),
+                                case.replace('case-', ''))
+
+        if name in labels:
+            count = labels[name]
         else:
             count += 1
-            model, case = benchmark.split('/')
-            number = int(model.split('-')[-1])
-            name = 'pst{}-{}'.format(number, case.replace('case-', ''))
             labels[name] = count
             benchmark_list.append(benchmark)
 
@@ -95,7 +98,7 @@ for i, benchmark in enumerate(benchmark_list):
     uncverts.append((1 + i, 1 + results[benchmark][1]))
 for i, benchmark in enumerate(benchmark_list[::-1]):
     uncverts.append((n - i, 1 - results[benchmark][1]))
-poly = Polygon(uncverts, facecolor='gray', edgecolor=None, alpha=0.3)
+poly = Polygon(uncverts, facecolor='gray', edgecolor=None, alpha=0.2)
 ax = plt.gca()
 ax.add_patch(poly)
 
