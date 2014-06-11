@@ -2,7 +2,7 @@
 
 #set -e
 
-: ${list:=short-list.txt}
+: ${list:=lists/short-list.txt}
 : ${particles:=1000}
 : ${batches:=550}
 : ${inactive:=50}
