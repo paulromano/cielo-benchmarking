@@ -3,8 +3,8 @@
  0.000000+0 1.000000+0          0          0          0          69437 1451    2
  1.000000+0 2.000000+7          1          5         10          79437 1451    3
  0.000000+0 0.000000+0          0          0         43        1159437 1451    4
- 94-Pu-239 LANL       EVAL-      Leal, Noguere, Kawano et al.     9437 1451    5
-                      DIST-                            20140422   9437 1451    6
+ 94-Pu-239 LANL       EVAL-JUN14 Leal, Noguere, Kawano et al.     9437 1451    5
+                      DIST-JUN14                       20140422   9437 1451    6
 ----ENDF/B-VII.1      MATERIAL 9437                               9437 1451    7
 -----INCIDENT NEUTRON DATA                                        9437 1451    8
 ------ENDF-6 FORMAT                                               9437 1451    9
