@@ -160,14 +160,23 @@ class Evaluation(object):
         n_res = np.where(np.array(params.getColumn('energy')) < 0.)[0].size
 
         initial_guess = 0.2
-        xg = initial_guess*uCapture
-        xf = initial_guess*uFission
+        xg1 = initial_guess*uCapture
+        xf1 = -initial_guess*uFission
         iteration = 1
         j = len(self.capture) - 1
+
+        fCapture = lambda xs: xs - (1 + targetCapture)*self.capture[j]
+        fFission = lambda xs: xs - (1 + targetFission)*self.fission[j]
+
+        xg0 = 0.
+        xf0 = 0.
+        fg0 = fCapture(self.capture[j])
+        ff0 = fFission(self.fission[j])
+
         while True:
             print('Iteration ' + str(iteration))
-            print('  Changing capture widths by {0:.1%}'.format(xg))
-            print('  Changing fission widths by {0:.1%}'.format(xf))
+            print('  Changing capture widths by {0:.1%}'.format(xg1))
+            print('  Changing fission widths by {0:.1%}'.format(xf1))
 
             # Save original values
             GG = [params.data[i][colG] for i in range(n_res)]
@@ -177,15 +186,15 @@ class Evaluation(object):
             # Increase capture widths and decrease fission widths for negative energy
             # resonances -- note that if the width is negative, we do the opposite
             for row in range(n_res):
-                params.data[row][colG] *= 1 + xg
+                params.data[row][colG] *= 1 + xg1
                 if params.data[row][colFA] > 0:
-                    params.data[row][colFA] *= 1 - xf
+                    params.data[row][colFA] *= 1 - xf1
                 else:
-                    params.data[row][colFA] *= 1 + xf
+                    params.data[row][colFA] *= 1 + xf1
                 if params.data[row][colFB] > 0:
-                    params.data[row][colFB] *= 1 - xf
+                    params.data[row][colFB] *= 1 - xf1
                 else:
-                    params.data[row][colFB] *= 1 + xf
+                    params.data[row][colFB] *= 1 + xf1
 
             # Reconstruct resonances
             self._get_2200_values()
@@ -206,8 +215,18 @@ class Evaluation(object):
                 params.data[row][colFA] = GFA[row]
                 params.data[row][colFB] = GFB[row]
 
-            xg *= targetCapture/changeCapture
-            xf *= targetFission/changeFission
+            fg1 = fCapture(self.capture[-1])
+            ff1 = fFission(self.fission[-1])
+
+            xg_new = xg1 - fg1*(xg1 - xg0)/(fg1 - fg0)
+            xf_new = xf1 - ff1*(xf1 - xf0)/(ff1 - ff0)
+
+            fg0 = fg1
+            ff0 = ff1
+            xg0 = xg1
+            xf0 = xf1
+            xg1 = xg_new
+            xf1 = xf_new
 
         # Print tables
         print('\nMODIFIED RESONANCE PARAMETERS')
