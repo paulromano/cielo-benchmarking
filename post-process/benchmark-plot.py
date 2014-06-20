@@ -51,12 +51,15 @@ for xls in args.xlsfiles:
     stdev.append([])
     for i in range(sheet.nrows - 1):
         words = sheet.cell(i, 0).value.split('/')
-        benchmark = words[1] + '/' + words[3]
+        if len(words) >= 4:
+            benchmark = words[1] + '/' + words[3]
+        else:
+            benchmark = words[1] + '/case-1'
         model, case = benchmark.split('/')
         volume, form, spectrum, number = model.split('-')
         abbreviation = volume[0] + form[0] + spectrum[0]
-        name = '{}{}-{}'.format(abbreviation, int(number),
-                                case.replace('case-', ''))
+        name = '{}{}{}'.format(abbreviation, int(number),
+                               case.replace('case', ''))
 
         if name in labels:
             count = labels[name]
