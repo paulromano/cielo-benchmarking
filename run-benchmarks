@@ -2,7 +2,7 @@
 
 #set -e
 
-: ${list:=short-list.txt}
+: ${list:=lists/pst-short.txt}
 : ${particles:=1000}
 : ${batches:=550}
 : ${inactive:=50}
@@ -73,7 +73,7 @@ for benchmark in $(cat $list); do
     output=output_$time
     CROSS_SECTIONS=${xsxml} openmc > $output 2>&1 &
     wait $!
-    mv tallies.out tallies_$time
+    mv tallies.out tallies_$time 2>/dev/null
     cd $basedir
 
     # Get k-effective

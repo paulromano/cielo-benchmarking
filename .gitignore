@@ -12,3 +12,14 @@ benchmarks
 
 # IPython notebooks
 *.ipynb
+
+# compiled Python files
+*.pyc
+
+# Images
+*.pdf
+*.png
+
+# Results folders
+201?-??-??-??????
+results/*
