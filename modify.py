@@ -33,12 +33,17 @@ class Evaluation(object):
 
         # Get original RM parameters
         rSuite = self.endf['reactionSuite']
-        params = rSuite.resonances.resolved.regions[0].nativeData.resonanceParameters
+        resolvedResonances = rSuite.resonances.resolved
+        if resolvedResonances.multipleRegions:
+            params = resolvedResonances.regions[0].nativeData.resonanceParameters
+        else:
+            params = resolvedResonances.nativeData.resonanceParameters
         columnNames = [col.name for col in params.columns]
         self.headers = [col.name + (' ({0})'.format(col.units) if col.units else '')
                    for col in params.columns]
         print('ORIGINAL RESONANCE PARAMETERS')
-        print(tabulate(params.data[:6], headers=self.headers, tablefmt='grid') + '\n')
+        row = np.where(np.array(params.getColumn('energy')) > 0.)[0][0]
+        print(tabulate(params.data[:row+2], headers=self.headers, tablefmt='grid') + '\n')
 
     def _get_2200_values(self):
         print('Reconstructing resonances...')
@@ -56,7 +61,11 @@ class Evaluation(object):
 
         # Get RM parameters, column indices for partial-widths
         rSuite = self.endf['reactionSuite']
-        params = rSuite.resonances.resolved.regions[0].nativeData.resonanceParameters
+        resolvedResonances = rSuite.resonances.resolved
+        if resolvedResonances.multipleRegions:
+            params = resolvedResonances.regions[0].nativeData.resonanceParameters
+        else:
+            params = resolvedResonances.nativeData.resonanceParameters
         columnNames = [col.name for col in params.columns]
         colE = columnNames.index('energy')
         colN = columnNames.index('neutronWidth')
@@ -72,7 +81,7 @@ class Evaluation(object):
         if args.capture_03 or args.fission_03:
             uCapture = 1.3e-3
             uFission = 0.95e-3
-            row = 4
+            row = np.where(np.array(params.getColumn('energy')) > 0.)[0][0]
             print('Uncertainty in 0.296 eV capture width = {0} eV'.format(uCapture))
             print('Uncertainty in 0.296 eV fissionA width = {0} eV'.format(uFission))
 
@@ -85,7 +94,7 @@ class Evaluation(object):
         if args.capture_78 or args.fission_78:
             uCapture = 2.1e-3
             uFission = 1.85e-3
-            row = 5
+            row = np.where(np.array(params.getColumn('energy')) > 0.)[0][0] + 1
             print('Uncertainty in 7.8 eV capture width = {0} eV'.format(uCapture))
             print('Uncertainty in 7.8 eV fissionA width = {0} eV\n'.format(uFission))
 
@@ -96,7 +105,8 @@ class Evaluation(object):
                 params.data[row][colFA] -= self.target*uFission
 
         print('MODIFIED RESONANCE PARAMETERS')
-        print(tabulate(params.data[4:6], headers=self.headers, tablefmt='grid') + '\n')
+        row = np.where(np.array(params.getColumn('energy')) > 0.)[0][0]
+        print(tabulate(params.data[row:row+2], headers=self.headers, tablefmt='grid') + '\n')
 
         # Get capture and fission cross sections
         self._get_2200_values()
@@ -108,7 +118,12 @@ class Evaluation(object):
     def modify_negative_resonances(self):
         header('Modifying negative energy resonances...')
         rSuite = self.endf['reactionSuite']
-        params = rSuite.resonances.resolved.regions[0].nativeData.resonanceParameters
+        resolvedResonances = rSuite.resonances.resolved
+        if resolvedResonances.multipleRegions:
+            params = resolvedResonances.regions[0].nativeData.resonanceParameters
+        else:
+            params = resolvedResonances.nativeData.resonanceParameters
+
         columnNames = [col.name for col in params.columns]
         colN = columnNames.index('neutronWidth')
         colG = columnNames.index('captureWidth')
@@ -119,10 +134,17 @@ class Evaluation(object):
 
         # Determine 2200 m/s covariances for fission and capture
         cSuite = self.endf['covarianceSuite']
-        covFission = cSuite.sections[12]
-        uFission = covFission.getNativeData().getUncertaintyVector().getValue(0.0253)
-        covCapture = cSuite.sections[19]
-        uCapture = covCapture.getNativeData().getUncertaintyVector().getValue(0.0253)
+        try:
+            covFission = cSuite.sections[12]
+            uFission = covFission.getNativeData().getUncertaintyVector().getValue(0.0253)
+        except IndexError:
+            uFission = 0.011260977
+
+        try:
+            covCapture = cSuite.sections[19]
+            uCapture = covCapture.getNativeData().getUncertaintyVector().getValue(0.0253)
+        except IndexError:
+            uCapture = 0.017603641
 
         print('Uncertainty in 2200 m/s capture = {0:.2f} b ({1:.2%})'.format(
                 uCapture*self.capture[0], uCapture))
@@ -134,33 +156,45 @@ class Evaluation(object):
         print('Targeting a {0:.3%} increase in 2200 m/s capture'.format(targetCapture).upper())
         print('Targeting a {0:.3%} decrease in 2200 m/s fission\n'.format(targetFission).upper())
 
-        initial_guess = 0.1
-        xg = initial_guess*uCapture
-        xf = initial_guess*uFission
+        # Determine number of negative resonances
+        n_res = np.where(np.array(params.getColumn('energy')) < 0.)[0].size
+
+        initial_guess = 0.2
+        xg1 = initial_guess*uCapture
+        xf1 = -initial_guess*uFission
         iteration = 1
         j = len(self.capture) - 1
+
+        fCapture = lambda xs: xs - (1 + targetCapture)*self.capture[j]
+        fFission = lambda xs: xs - (1 + targetFission)*self.fission[j]
+
+        xg0 = 0.
+        xf0 = 0.
+        fg0 = fCapture(self.capture[j])
+        ff0 = fFission(self.fission[j])
+
         while True:
             print('Iteration ' + str(iteration))
-            print('  Changing capture widths by {0:.1%}'.format(xg))
-            print('  Changing fission widths by {0:.1%}'.format(xf))
+            print('  Changing capture widths by {0:.1%}'.format(xg1))
+            print('  Changing fission widths by {0:.1%}'.format(xf1))
 
             # Save original values
-            GG = [params.data[i][colG] for i in range(4)]
-            GFA = [params.data[i][colFA] for i in range(4)]
-            GFB = [params.data[i][colFB] for i in range(4)]
+            GG = [params.data[i][colG] for i in range(n_res)]
+            GFA = [params.data[i][colFA] for i in range(n_res)]
+            GFB = [params.data[i][colFB] for i in range(n_res)]
 
             # Increase capture widths and decrease fission widths for negative energy
             # resonances -- note that if the width is negative, we do the opposite
-            for row in range(4):
-                params.data[row][colG] *= 1 + xg
+            for row in range(n_res):
+                params.data[row][colG] *= 1 + xg1
                 if params.data[row][colFA] > 0:
-                    params.data[row][colFA] *= 1 - xf
+                    params.data[row][colFA] *= 1 - xf1
                 else:
-                    params.data[row][colFA] *= 1 + xf
+                    params.data[row][colFA] *= 1 + xf1
                 if params.data[row][colFB] > 0:
-                    params.data[row][colFB] *= 1 - xf
+                    params.data[row][colFB] *= 1 - xf1
                 else:
-                    params.data[row][colFB] *= 1 + xf
+                    params.data[row][colFB] *= 1 + xf1
 
             # Reconstruct resonances
             self._get_2200_values()
@@ -176,17 +210,27 @@ class Evaluation(object):
                 break
 
             # Reset partial widths
-            for row in range(4):
+            for row in range(n_res):
                 params.data[row][colG] = GG[row]
                 params.data[row][colFA] = GFA[row]
                 params.data[row][colFB] = GFB[row]
 
-            xg *= targetCapture/changeCapture
-            xf *= targetFission/changeFission
+            fg1 = fCapture(self.capture[-1])
+            ff1 = fFission(self.fission[-1])
+
+            xg_new = xg1 - fg1*(xg1 - xg0)/(fg1 - fg0)
+            xf_new = xf1 - ff1*(xf1 - xf0)/(ff1 - ff0)
+
+            fg0 = fg1
+            ff0 = ff1
+            xg0 = xg1
+            xf0 = xf1
+            xg1 = xg_new
+            xf1 = xf_new
 
         # Print tables
         print('\nMODIFIED RESONANCE PARAMETERS')
-        print(tabulate(params.data[:4], headers=self.headers, tablefmt='grid'))
+        print(tabulate(params.data[:n_res], headers=self.headers, tablefmt='grid'))
 
         # Get capture and fission cross sections
         changeCapture = (self.capture[-1] - self.capture[0]) / self.capture[0]
@@ -200,9 +244,12 @@ class Evaluation(object):
         header('Modifying thermal prompt nubar...')
 
         # Determine 2200 m/s covariance for nubar
-        covNubar = self.endf['covarianceSuite'].sections[0]
-        uncvNubar = covNubar.getNativeData().getUncertaintyVector()
-        uNubar = uncvNubar.getValue(0.0253)
+        try:
+            covNubar = self.endf['covarianceSuite'].sections[0]
+            uncvNubar = covNubar.getNativeData().getUncertaintyVector()
+            uNubar = uncvNubar.getValue(0.0253)
+        except IndexError:
+            uNubar = 0.0018568252
 
         # Get prompt nubar
         nubar = self.endf['reactionSuite'].getReaction('fission').outputChannel\
