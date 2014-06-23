@@ -4,6 +4,7 @@ import sys
 from math import sqrt
 from collections import OrderedDict
 import argparse
+from fnmatch import fnmatch
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -33,6 +34,7 @@ parser.add_argument('-s', '--shade', action='store_true',
 parser.add_argument('-e', '--error', action='store_true',
                     help='Show error bars on individual points')
 parser.add_argument('-t', '--title', action='store', help='Plot title')
+parser.add_argument('-m', '--match', action='store', help='Pattern match')
 args = parser.parse_args()
 
 # Read data from files
@@ -55,6 +57,9 @@ for xls in args.xlsfiles:
             benchmark = words[1] + '/' + words[3]
         else:
             benchmark = words[1] + '/case-1'
+        if args.match:
+            if not fnmatch(benchmark, args.match):
+                continue
         model, case = benchmark.split('/')
         volume, form, spectrum, number = model.split('-')
         abbreviation = volume[0] + form[0] + spectrum[0]
