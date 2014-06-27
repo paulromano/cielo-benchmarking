@@ -34,6 +34,7 @@ icsbep/pu-met-fast-044/openmc/case-2
 icsbep/pu-met-fast-044/openmc/case-3
 icsbep/pu-met-fast-044/openmc/case-4
 icsbep/pu-met-fast-044/openmc/case-5
+icsbep/pu-met-inter-002/openmc
 icsbep/pu-sol-therm-001/openmc/case-1
 icsbep/pu-sol-therm-001/openmc/case-2
 icsbep/pu-sol-therm-001/openmc/case-3

@@ -49,12 +49,20 @@ def plot_relative_diff(xs1, xs2, xlabel='Energy (eV)', ylabel='Relative differen
 
 file1 = sys.argv[1]
 file2 = sys.argv[2]
+covfile = sys.argv[3] if len(sys.argv) > 3 else file1
 
 t1 = endfFileToGND(file1, toStdOut=False, toStdErr=False)
 t2 = endfFileToGND(file2, toStdOut=False, toStdErr=False)
 eval1 = t1['reactionSuite']
-cov   = t1['covarianceSuite']
 eval2 = t2['reactionSuite']
+
+if covfile == file1:
+    cov = t1['covarianceSuite']
+elif covfile == file2:
+    cov = t2['covarianceSuite']
+else:
+    tc = endfFileToGND(covfile, toStdOut=False, toStdErr=False)
+    cov = tc['covarianceSuite']
 
 # Reconstruct resonance
 eval1.reconstructResonances(accuracy=1e-4)
