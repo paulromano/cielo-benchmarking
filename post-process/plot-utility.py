@@ -54,22 +54,25 @@ def add_file():
 def set_options(options):
     os.system('clear')
     print("""
-1) Show shaded uncertainties around mean         [{show_shaded}]
-2) Show error bars on individual cases           [{show_uncertainties}]
-3) Case name pattern match                       [{match}]
-4) Plot title                                    [{title}]
-5) Return to main menu
+1) Plot type                                     [{plot_type}]
+2) Show shaded uncertainties around mean         [{show_shaded}]
+3) Show error bars on individual cases           [{show_uncertainties}]
+4) Case name pattern match                       [{match}]
+5) Plot title                                    [{title}]
+6) Return to main menu
 """.format(**options))
     choice = eval(raw_input('--> '))
     if choice == 1:
+        options['plot_type'] = raw_input('Enter plot type [keff/leakage]: ')
+    if choice == 2:
         options['show_shaded'] = not options['show_shaded']
-    elif choice == 2:
-        options['show_uncertainties'] = not options['show_uncertainties']
     elif choice == 3:
-        options['match'] = raw_input('Enter matching pattern: ')
+        options['show_uncertainties'] = not options['show_uncertainties']
     elif choice == 4:
-        options['title'] = raw_input('Enter title: ')
+        options['match'] = raw_input('Enter matching pattern: ')
     elif choice == 5:
+        options['title'] = raw_input('Enter title: ')
+    elif choice == 6:
         return
     set_options(options)
 
@@ -174,7 +177,8 @@ def plot(files, options, save=False):
 
 if __name__ == "__main__":
     files = []
-    options = {'show_shaded': True,
+    options = {'plot_type': 'keff',
+               'show_shaded': True,
                'show_uncertainties': False,
                'match': '',
                'title': ''}
