@@ -5,6 +5,7 @@ from math import sqrt
 from collections import OrderedDict
 import argparse
 import os
+import time
 from fnmatch import fnmatch
 from tkFileDialog import askopenfilename, asksaveasfilename
 from Tkinter import Tk
@@ -49,7 +50,8 @@ def add_file():
     filename = askopenfilename(filetypes=(("Spreadsheets", "*.xls*"),
                                           ("All", "*.*")))
     root.destroy()
-    return filename
+    label = raw_input('Enter label: ')
+    return label, filename
 
 def set_options(options):
     os.system('clear')
@@ -57,9 +59,11 @@ def set_options(options):
 1) Plot type                                     [{plot_type}]
 2) Show shaded uncertainties around mean         [{show_shaded}]
 3) Show error bars on individual cases           [{show_uncertainties}]
-4) Case name pattern match                       [{match}]
-5) Plot title                                    [{title}]
-6) Return to main menu
+4) Show legend                                   [{show_legend}]
+5) Case name pattern match                       [{match}]
+6) Title                                         [{title}]
+7) Author                                        [{author}]
+8) Return to main menu
 """.format(**options))
     choice = eval(raw_input('--> '))
     if choice == 1:
@@ -69,14 +73,18 @@ def set_options(options):
     elif choice == 3:
         options['show_uncertainties'] = not options['show_uncertainties']
     elif choice == 4:
-        options['match'] = raw_input('Enter matching pattern: ')
+        options['show_legend'] = not options['show_legend']
     elif choice == 5:
-        options['title'] = raw_input('Enter title: ')
+        options['match'] = raw_input('Enter matching pattern: ')
     elif choice == 6:
+        options['title'] = raw_input('Enter title: ')
+    elif choice == 7:
+        options['author'] = raw_input('Enter author: ')
+    elif choice == 8:
         return
     set_options(options)
 
-def plot(files, options, save=False):
+def plot(options, save=False):
     # Read data from files
     labels = OrderedDict()
     x = []
@@ -84,7 +92,7 @@ def plot(files, options, save=False):
     stdev = []
     count = 0
     benchmark_list = []
-    for xls in files:
+    for xls in options['files']:
         book = xlrd.open_workbook(xls)
         sheet = book.sheet_by_index(0)
 
@@ -123,11 +131,14 @@ def plot(files, options, save=False):
 
     # Plot data
     for i in range(len(x)):
+        kwargs = {'color': colors[i], 'mec': 'black', 'mew': 0.15}
+        if options['show_legend']:
+            kwargs['label'] = options['labels'][i]
+
         if options['show_uncertainties']:
-            plt.errorbar(x[i], coe[i], yerr=stdev[i], fmt='o', color=colors[i],
-                         mec='black', mew=0.15)
+            plt.errorbar(x[i], coe[i], yerr=stdev[i], fmt='o', **kwargs)
         else:
-            plt.plot(x[i], coe[i], 'o', color=colors[i], mec='black', mew=0.15)
+            plt.plot(x[i], coe[i], 'o', **kwargs)
 
         mu = sum(coe[i])/len(coe[i])
         sigma = sqrt(sum([s**2 for s in stdev[i]]))/len(stdev[i])
@@ -138,7 +149,8 @@ def plot(files, options, save=False):
             poly = Polygon(verts, facecolor=colors[i], alpha=0.5)
             ax.add_patch(poly)
         else:
-            plt.plot([-1,n], [mu, mu], '-', color=colors[i], lw=1.5)
+            plt.plot([-1,n], [mu, mu], '-', color=colors[i], lw=1.5,
+                     label='{} (Avg)'.format(options['labels'][i]))
 
     # Show shaded region of benchmark model uncertainties
     uncverts = []
@@ -161,8 +173,13 @@ def plot(files, options, save=False):
     ax.set_axisbelow(True)
     plt.ylabel(r'$k_{\text{eff}}$ C/E', fontsize=18)
     plt.gcf().set_size_inches(17,6)
-    if options['title']:
-        plt.title(options['title'])
+    title = '\n'.join([options['title'], 'Author: ' + options['author'],
+                       time.ctime()]).strip()
+    plt.title(title, multialignment='left')
+    if options['show_legend']:
+        lgd = plt.legend(loc='center left', bbox_to_anchor=(1.0,0.5), numpoints=1)
+    else:
+        lgd = None
 
     if save:
         # Get file name
@@ -170,32 +187,36 @@ def plot(files, options, save=False):
         root.withdraw()
         filename = asksaveasfilename()
         root.destroy()
-        plt.savefig(filename, bbox_inches='tight')
+        plt.savefig(filename, bbox_extra_artists=(lgd,), bbox_inches='tight')
     else:
         plt.show()
     plt.close()
 
 if __name__ == "__main__":
-    files = []
-    options = {'plot_type': 'keff',
+    options = {'files': [],
+               'labels': [],
+               'plot_type': 'keff',
                'show_shaded': True,
                'show_uncertainties': False,
+               'show_legend': False,
                'match': '',
-               'title': ''}
+               'title': '',
+               'author': 'Paul Romano'}
 
     while True:
-        choice = get_input(files)
+        choice = get_input(options['files'])
         if choice == 1:
-            filename = add_file()
+            label, filename = add_file()
             if filename:
-                files.append(filename)
+                options['files'].append(filename)
+                options['labels'].append(label)
 
         elif choice == 2:
             set_options(options)
         elif choice == 3:
-            plot(files, options, True)
+            plot(options, True)
         elif choice == 4:
-            plot(files, options)
+            plot(options)
         elif choice == 5:
             break
 
