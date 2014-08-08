@@ -8,14 +8,18 @@ fi
 # Copy ENDF file to name NJOY will recognize
 cp $1 tape20
 
+# Get material number
+mat=$(cat $1 | sed -ne '2 p' | cut -c67-70)
+zsymam=$(cat $1 | sed -ne '6 p' | cut -c1-11)
+
 # Run NJOY
 njoy <<EOF
 reconr / Reconstruct XS for neutrons
 20 21
-'ENDF/B-VII.1 PENDF for 94-Pu-239'/
-9437 2/
+'ENDF/B-VII.1 PENDF for ${zsymam}'/
+${mat} 2/
 0.001 0.0 0.003/ err tempr errmax
-'ENDF/B-VII.1: 94-Pu-239'/
+'ENDF/B-VII.1: ${zsymam}'/
 'Processed by NJOY99.396'/
 0/
 stop
