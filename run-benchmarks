@@ -2,7 +2,7 @@
 
 #set -e
 
-: ${list:=lists/pst-short.txt}
+: ${list:=benchmarks/lists/pst-short}
 : ${particles:=1000}
 : ${batches:=550}
 : ${inactive:=50}
@@ -40,10 +40,6 @@ trap 'kill $(jobs -p) 2>/dev/null' EXIT
 # Get copy of benchmarks repository and switch to nndc branch
 if [[ ! -d benchmarks ]]; then
     git clone https://github.com/mit-crpg/benchmarks.git
-    cd benchmarks
-    git branch --track nndc origin/nndc
-    git checkout nndc
-    cd ..
 fi
 
 # Prepare benchmarks
