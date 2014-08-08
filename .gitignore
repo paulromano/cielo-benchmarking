@@ -23,3 +23,6 @@ benchmarks
 # Results folders
 201?-??-??-??????
 results/*
+
+# Evaluations
+evaluations/*
