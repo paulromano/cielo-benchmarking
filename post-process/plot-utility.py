@@ -16,7 +16,7 @@ from matplotlib.patches import Polygon
 import brewer2mpl
 import xlrd
 
-from benchmarks import results
+from icsbep.icsbep import model_keff
 
 matplotlib.rcParams['ps.useafm'] = True
 matplotlib.rcParams['pdf.use14corefonts'] = True
@@ -121,8 +121,13 @@ def plot(options, save=False):
                 labels[name] = count
                 benchmark_list.append(benchmark)
 
+            if benchmark in model_keff:
+                experiment = model_keff[benchmark][0]
+            else:
+                experiment = 1.0
+
             x[-1].append(count)
-            coe[-1].append(sheet.cell(i, 1).value/results[benchmark][0])
+            coe[-1].append(sheet.cell(i, 1).value/experiment)
             stdev[-1].append(1.96 * sheet.cell(i, 2).value)
 
     # Get pretty color map
@@ -155,9 +160,11 @@ def plot(options, save=False):
     # Show shaded region of benchmark model uncertainties
     uncverts = []
     for i, benchmark in enumerate(benchmark_list):
-        uncverts.append((1 + i, 1 + results[benchmark][1]))
+        unc = 0.0 if benchmark not in model_keff else model_keff[benchmark][1]
+        uncverts.append((1 + i, 1 + unc))
     for i, benchmark in enumerate(benchmark_list[::-1]):
-        uncverts.append((n - i, 1 - results[benchmark][1]))
+        unc = 0.0 if benchmark not in model_keff else model_keff[benchmark][1]
+        uncverts.append((n - i, 1 - unc))
     poly = Polygon(uncverts, facecolor='gray', edgecolor=None, alpha=0.2)
     ax = plt.gca()
     ax.add_patch(poly)
@@ -171,6 +178,7 @@ def plot(options, save=False):
     plt.setp(ax.get_yticklabels(), fontsize=14)
     plt.grid(True, which='both', color='lightgray', ls='-', alpha=0.7)
     ax.set_axisbelow(True)
+    plt.xlabel('Benchmark case', fontsize=18)
     plt.ylabel(r'$k_{\text{eff}}$ C/E', fontsize=18)
     plt.gcf().set_size_inches(17,6)
     title = '\n'.join([options['title'], 'Author: ' + options['author'],
