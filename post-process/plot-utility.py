@@ -33,10 +33,11 @@ def get_input(files):
     os.system('clear')
     print("""
 1) Add file
-2) Set options
-3) Plot (save file)
-4) Plot (show)
-5) Exit
+2) Set global options
+3) Set file options
+4) Plot (save file)
+5) Plot (show)
+6) Exit
 
 Files:""")
     for filename in files:
@@ -54,8 +55,10 @@ def add_file():
     return label, filename
 
 def set_options(options):
-    os.system('clear')
-    print("""
+    choice = None
+    while choice != 8:
+        os.system('clear')
+        print("""
 1) Plot type                                     [{plot_type}]
 2) Show shaded uncertainties around mean         [{show_shaded}]
 3) Show error bars on individual cases           [{show_uncertainties}]
@@ -65,24 +68,46 @@ def set_options(options):
 7) Author                                        [{author}]
 8) Return to main menu
 """.format(**options))
-    choice = eval(raw_input('--> '))
-    if choice == 1:
-        options['plot_type'] = raw_input('Enter plot type [keff/leakage]: ')
-    if choice == 2:
-        options['show_shaded'] = not options['show_shaded']
-    elif choice == 3:
-        options['show_uncertainties'] = not options['show_uncertainties']
-    elif choice == 4:
-        options['show_legend'] = not options['show_legend']
-    elif choice == 5:
-        options['match'] = raw_input('Enter matching pattern: ')
-    elif choice == 6:
-        options['title'] = raw_input('Enter title: ')
-    elif choice == 7:
-        options['author'] = raw_input('Enter author: ')
-    elif choice == 8:
-        return
-    set_options(options)
+        choice = eval(raw_input('--> '))
+        if choice == 1:
+            options['plot_type'] = raw_input('Enter plot type [keff/leakage]: ')
+        elif choice == 2:
+            options['show_shaded'] = not options['show_shaded']
+        elif choice == 3:
+            options['show_uncertainties'] = not options['show_uncertainties']
+        elif choice == 4:
+            options['show_legend'] = not options['show_legend']
+        elif choice == 5:
+            options['match'] = raw_input('Enter matching pattern: ')
+        elif choice == 6:
+            options['title'] = raw_input('Enter title: ')
+        elif choice == 7:
+            options['author'] = raw_input('Enter author: ')
+
+def set_file_main(options):
+    n = len(options['files'])
+    choice = None
+    while choice != n + 1:
+        os.system('clear')
+        print("Select file:")
+        for i, filename in enumerate(options['files']):
+            print("{}) {}".format(i + 1, filename))
+        print("{}) Return to main menu".format(len(options['files']) + 1))
+        choice = eval(raw_input('--> '))
+        if choice != len(options['files']) + 1:
+            set_file_options(options, choice - 1)
+
+def set_file_options(options, i):
+    choice = None
+    while choice != 2:
+        os.system('clear')
+        print("""
+1) File label                                    [{}]
+2) Return to file selection
+""".format(options['labels'][i]))
+        choice = eval(raw_input('--> '))
+        if choice == 1:
+            options['labels'][i] = raw_input('Enter label: ')
 
 def plot(options, save=False):
     # Read data from files
@@ -222,9 +247,11 @@ if __name__ == "__main__":
         elif choice == 2:
             set_options(options)
         elif choice == 3:
-            plot(options, True)
+            set_file_main(options)
         elif choice == 4:
-            plot(options)
+            plot(options, True)
         elif choice == 5:
+            plot(options)
+        elif choice == 6:
             break
 
