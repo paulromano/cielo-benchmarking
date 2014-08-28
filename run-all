@@ -27,7 +27,7 @@ python modify.py $1 ${directory}/modified.endf \
 ./run-njoy modified.endf ${directory} | tee ${directory}/run-njoy.out
 
 # 3) Modify cross sections for OpenMC use
-./modify-csxml ${directory}
+./modify-csxml.py ${directory}
 
 # 4) Run benchmarks
 ./run-benchmarks ${directory}
