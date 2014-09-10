@@ -1,45 +1,34 @@
 #!/bin/bash
 
-#set -e
+#PBS -l nodes=2:ppn=8
+#PBS -l walltime=48:00:00
+#PBS -M paul.k.romano@gmail.com
+#PBS -m e
+#PBS -j oe
 
+# Create timestamp
+time=$(date +"%Y-%m-%d-%H%M%S")
+
+# Set default values
 : ${list:=benchmarks/lists/pst-short}
 : ${particles:=1000}
 : ${batches:=550}
 : ${inactive:=50}
+: ${code:=openmc}
+: ${xsxml:=/opt/data/ace/nndc/cross_sections.xml}
+: ${directory:=$time}
 
-time=$(date +"%Y-%m-%d-%H%M%S")
-
-if [[ $# -eq 1 ]]; then
-    directory=$1
-    xsxml=$(pwd)/${directory}/cross_sections_new.xml
-else
-    directory=$time
-    xsxml=/opt/data/ace/nndc/cross_sections.xml
+# Change to correct directory
+if [[ ! -z $PBS_JOBID ]]; then
+    cd $PBS_O_WORKDIR
+    PATH=$PBS_O_PATH
 fi
 mkdir -p $directory
-
-# Write progress bar
-function progress {
-    current=$1
-    total=$2
-    width=68
-    percent=$(echo "$current*100/$total" | bc)
-    bars=$(echo "$current*$width/$total" | bc)
-    nobars=$(expr $width \- $bars \- 1)
-
-    echo -ne "$(printf '%3i' $percent)% ["
-    for j in $(seq 1 $bars); do echo -ne "="; done
-    if [[ $nobars -gt 0 ]]; then echo -ne ">"; fi
-    for j in $(seq 1 $nobars); do echo -ne "."; done
-    echo -ne "]\r"
-}
-
-# Make sure runs are killed if script aborts
-trap 'kill $(jobs -p) 2>/dev/null' EXIT
+cd $directory
 
 # Get copy of benchmarks repository and switch to nndc branch
 if [[ ! -d benchmarks ]]; then
-    git clone https://github.com/mit-crpg/benchmarks.git
+    git clone git@github.com:mit-crpg/benchmarks.git
 fi
 
 # Prepare benchmarks
@@ -57,19 +46,21 @@ rm -f ${directory}/results
 # Run benchmarks
 num=$(cat $list | wc -l)
 i=0
-basedir=$PWD
+basedir=$(pwd)
 echo "Running benchmarks..."
 for benchmark in $(cat $list); do
-    # Update progress bar
-    progress $i $num
     i=$(expr $i \+ 1)
+    echo $i $benchmark
 
     # Run openmc
     cd benchmarks/${benchmark}
-    output=output_$time
-    CROSS_SECTIONS=${xsxml} openmc > $output 2>&1 &
-    wait $!
-    mv tallies.out tallies_$time 2>/dev/null
+    output=output_$directory
+    if [[ ! -z $PBS_JOBID ]]; then
+	CROSS_SECTIONS=${xsxml} mpiexec -rmk pbs $code > $output 2>&1
+    else
+	CROSS_SECTIONS=${xsxml} $code > $output 2>&1
+    fi
+    # mv tallies.out tallies_$time 2>/dev/null
     cd $basedir
 
     # Get k-effective
@@ -81,19 +72,15 @@ for benchmark in $(cat $list); do
         sed -r -e 's_.*=(.*)\+/-.*_\1_g')
     leak_unc=$(cat benchmarks/${benchmark}/$output | grep -a Leakage | \
         sed -r -e 's_.*\+/-(.*)_\1_g')
-    echo $benchmark $k_mean $k_unc $leak_mean $leak_unc >> ${directory}/results
+    echo $benchmark $k_mean $k_unc $leak_mean $leak_unc >> results
 done
-
-# Display 100% on progress bar
-progress $num $num
-echo -ne "\n"
 
 # Convert results to spreadsheet
 echo Converting results to .xls...
-python make-xls.py ${directory}/results
+python ../make-xls.py results
 status=$?
 
 # Create archive of outputs
 echo Creating ${directory}/results_output.tar.gz
-find . -name "output_${time}" -o -name "tallies_${time}" | cut -c3- \
-    | xargs tar czf ${directory}/results_output.tar.gz
+find . -name "output_${directory}" -o -name "tallies_${time}" | cut -c3- \
+    | xargs tar czf results_output.tar.gz

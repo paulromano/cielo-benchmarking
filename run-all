@@ -28,6 +28,7 @@ python modify.py $1 ${directory}/modified.endf \
 
 # 3) Modify cross sections for OpenMC use
 ./modify-csxml.py ${directory}
+xsxml=$(readlink -f $directory/cross_sections_new.xml)
 
 # 4) Run benchmarks
-./run-benchmarks ${directory}
+source run-benchmarks
