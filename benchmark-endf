@@ -1,0 +1,47 @@
+#!/bin/bash
+
+#PBS -l nodes=2:ppn=8
+#PBS -l walltime=48:00:00
+#PBS -M paul.k.romano@gmail.com
+#PBS -m e
+#PBS -j oe
+
+# Set default values
+: ${list:=benchmarks/lists/o16}
+: ${particles:=10000}
+: ${batches:=550}
+: ${inactive:=50}
+: ${code:=openmc}
+
+# Change to correct directory
+if [[ ! -z $PBS_JOBID ]]; then
+    cd $PBS_O_WORKDIR
+    PATH=$PBS_O_PATH
+fi
+
+# Get name of ENDF file
+if [[ -z $endf ]]; then
+    if [[ $# -lt 1 ]]; then
+	echo "Need to supply ENDF filename"
+	exit 1
+    else
+	endf=$1
+    fi
+fi
+
+# Create new directory for run
+directory=$(date +"%Y-%m-%d-%H%M%S")
+mkdir -p $directory
+
+# Copy ENDF file to directory
+cp $endf $directory/
+
+# Run NJOY
+./run-njoy $(basename $endf) $directory | tee $directory/run-njoy.out
+
+# Modified cross sections for OpenMC use
+./modify-csxml.py $directory
+xsxml=$(readlink -f $directory/cross_sections_new.xml)
+
+# Run benchmarks
+source run-benchmarks
