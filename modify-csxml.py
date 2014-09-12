@@ -24,7 +24,8 @@ if retcode:
     raise Exception('Could not convert xsdir file')
 
 # Get single line from XML file
-replace_line = open('temp.xml', 'r').readlines()[5]
+replace_line = next(line for line in open('temp.xml', 'r').readlines()
+                    if line.strip().startswith('<ace_table'))
 nuclide = replace_line.split('"')[1][:-4]
 
 # Replace appropriate line in cross_sections.xml
