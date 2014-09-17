@@ -13,6 +13,7 @@ from Tkinter import Tk
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
+import numpy as np
 import brewer2mpl
 import xlrd
 
@@ -115,6 +116,8 @@ def plot(options, save=False):
     x = []
     coe = []
     stdev = []
+    leakage = []
+    atlf = []
     count = 0
     benchmark_list = []
     for xls in options['files']:
@@ -124,6 +127,8 @@ def plot(options, save=False):
         x.append([])
         coe.append([])
         stdev.append([])
+        leakage.append([])
+        atlf.append([])
         for i in range(sheet.nrows - 1):
             words = sheet.cell(i, 0).value.split('/')
             if len(words) >= 4:
@@ -154,58 +159,83 @@ def plot(options, save=False):
             x[-1].append(count)
             coe[-1].append(sheet.cell(i, 1).value/experiment)
             stdev[-1].append(1.96 * sheet.cell(i, 2).value)
+            leakage[-1].append(sheet.cell(i, 3).value)
+            atlf[-1].append(sheet.cell(i, 4).value)
 
     # Get pretty color map
     n = len(labels)
     colors = brewer2mpl.get_map('Set2', 'qualitative', max(3,min(8,n))).mpl_colors
 
     # Plot data
-    for i in range(len(x)):
-        kwargs = {'color': colors[i], 'mec': 'black', 'mew': 0.15}
-        if options['show_legend']:
-            kwargs['label'] = options['labels'][i]
+    if options['plot_type'] == 'keff':
+        for i in range(len(x)):
+            kwargs = {'color': colors[i], 'mec': 'black', 'mew': 0.15}
+            if options['show_legend']:
+                kwargs['label'] = options['labels'][i]
 
-        if options['show_uncertainties']:
-            plt.errorbar(x[i], coe[i], yerr=stdev[i], fmt='o', **kwargs)
-        else:
-            plt.plot(x[i], coe[i], 'o', **kwargs)
+            if options['show_uncertainties']:
+                plt.errorbar(x[i], coe[i], yerr=stdev[i], fmt='o', **kwargs)
+            else:
+                plt.plot(x[i], coe[i], 'o', **kwargs)
 
-        mu = sum(coe[i])/len(coe[i])
-        sigma = sqrt(sum([s**2 for s in stdev[i]]))/len(stdev[i])
+            mu = sum(coe[i])/len(coe[i])
+            sigma = sqrt(sum([s**2 for s in stdev[i]]))/len(stdev[i])
 
-        if options['show_shaded']:
-            ax = plt.gca()
-            verts = [(0, mu - sigma), (0, mu + sigma), (n+1, mu + sigma), (n+1, mu - sigma)]
-            poly = Polygon(verts, facecolor=colors[i], alpha=0.5)
-            ax.add_patch(poly)
-        else:
-            plt.plot([-1,n], [mu, mu], '-', color=colors[i], lw=1.5,
-                     label='{} (Avg)'.format(options['labels'][i]))
+            if options['show_shaded']:
+                ax = plt.gca()
+                verts = [(0, mu - sigma), (0, mu + sigma), (n+1, mu + sigma), (n+1, mu - sigma)]
+                poly = Polygon(verts, facecolor=colors[i], alpha=0.5)
+                ax.add_patch(poly)
+            else:
+                plt.plot([-1,n], [mu, mu], '-', color=colors[i], lw=1.5,
+                         label='{} (Avg)'.format(options['labels'][i]))
 
-    # Show shaded region of benchmark model uncertainties
-    uncverts = []
-    for i, benchmark in enumerate(benchmark_list):
-        unc = 0.0 if benchmark not in model_keff else model_keff[benchmark][1]
-        uncverts.append((1 + i, 1 + unc))
-    for i, benchmark in enumerate(benchmark_list[::-1]):
-        unc = 0.0 if benchmark not in model_keff else model_keff[benchmark][1]
-        uncverts.append((n - i, 1 - unc))
-    poly = Polygon(uncverts, facecolor='gray', edgecolor=None, alpha=0.2)
-    ax = plt.gca()
-    ax.add_patch(poly)
+        # Show shaded region of benchmark model uncertainties
+        uncverts = []
+        for i, benchmark in enumerate(benchmark_list):
+            unc = 0.0 if benchmark not in model_keff else model_keff[benchmark][1]
+            uncverts.append((1 + i, 1 + unc))
+        for i, benchmark in enumerate(benchmark_list[::-1]):
+            unc = 0.0 if benchmark not in model_keff else model_keff[benchmark][1]
+            uncverts.append((n - i, 1 - unc))
+        poly = Polygon(uncverts, facecolor='gray', edgecolor=None, alpha=0.2)
+        ax = plt.gca()
+        ax.add_patch(poly)
 
-    # Configure plot
-    ax = plt.gca()
-    plt.xticks(range(1,n+1), labels.keys(), rotation='vertical')
-    plt.xlim((0,n+1))
-    plt.subplots_adjust(bottom=0.15)
-    plt.setp(ax.get_xticklabels(), fontsize=10)
-    plt.setp(ax.get_yticklabels(), fontsize=14)
+        # Configure plot
+        ax = plt.gca()
+        plt.xticks(range(1,n+1), labels.keys(), rotation='vertical')
+        plt.xlim((0,n+1))
+        plt.subplots_adjust(bottom=0.15)
+        plt.setp(ax.get_xticklabels(), fontsize=10)
+        plt.setp(ax.get_yticklabels(), fontsize=14)
+        plt.xlabel('Benchmark case', fontsize=18)
+        plt.ylabel(r'$k_{\text{eff}}$ C/E', fontsize=18)
+        plt.gcf().set_size_inches(17,6)
+
+    elif options['plot_type'] == 'leakage':
+        for i in range(len(x)):
+            kwargs = {'color': colors[i], 'mec': 'black', 'mew': 0.15}
+            if options['show_legend']:
+                kwargs['label'] = options['labels'][i]
+
+            if options['show_uncertainties']:
+                plt.errorbar(atlf[i], coe[i], yerr=stdev[i], fmt='o', **kwargs)
+            else:
+                plt.plot(atlf[i], coe[i], 'o', **kwargs)
+
+            linear_fit = np.polyfit(atlf[i], coe[i], 1)
+            linear_func = np.poly1d(linear_fit)
+            plt.plot(atlf[i], linear_func(atlf[i]), color=colors[i], lw=1.5,
+                     label='{}\nC/E = {:.4f}*ATLF + {:.4f}'.format(
+                         options['labels'][i], *linear_fit))
+
+        plt.xlabel('Above-thermal leakage fraction', fontsize=18)
+        plt.ylabel(r'$k_{\text{eff}}$ C/E', fontsize=18)
+        plt.gcf().set_size_inches(12,6)
+
     plt.grid(True, which='both', color='lightgray', ls='-', alpha=0.7)
-    ax.set_axisbelow(True)
-    plt.xlabel('Benchmark case', fontsize=18)
-    plt.ylabel(r'$k_{\text{eff}}$ C/E', fontsize=18)
-    plt.gcf().set_size_inches(17,6)
+    plt.gca().set_axisbelow(True)
     title = '\n'.join([options['title'], 'Author: ' + options['author'],
                        time.ctime()]).strip()
     plt.title(title, multialignment='left')
@@ -231,7 +261,7 @@ if __name__ == "__main__":
                'plot_type': 'keff',
                'show_shaded': True,
                'show_uncertainties': False,
-               'show_legend': False,
+               'show_legend': True,
                'match': '',
                'title': '',
                'author': 'Paul Romano'}
@@ -254,4 +284,3 @@ if __name__ == "__main__":
             plot(options)
         elif choice == 6:
             break
-
