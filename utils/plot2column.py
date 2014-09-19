@@ -19,11 +19,11 @@ def get_input(files):
 5) Plot (show)
 6) Exit
 
-Files:""")
+Selected files:""")
     for filename in files:
         print('  ' + filename)
     print('')
-    return eval(raw_input('--> '))
+    return eval(raw_input('Enter selection [1-6]: '))
 
 def add_file():
     root = Tk()
@@ -49,7 +49,7 @@ def set_options(options):
 9) Plot title                    [{title}]
 10) Return to main menu
 """.format(**options))
-        choice = int(raw_input('--> '))
+        choice = int(raw_input('Enter selection [1-10]: '))
         if choice == 1:
             options['scale'] = raw_input('Enter scale [e.g. log-lin]: ')
         elif choice == 2:
@@ -78,7 +78,7 @@ def set_file_main(options):
         for i, filename in enumerate(options['files']):
             print("{}) {}".format(i + 1, filename))
         print("{}) Return to main menu".format(len(options['files']) + 1))
-        choice = eval(raw_input('--> '))
+        choice = eval(raw_input('Enter selection: '))
         if choice != len(options['files']) + 1:
             set_file_options(options, choice - 1)
 
@@ -90,7 +90,7 @@ def set_file_options(options, i):
 1) File label                                    [{}]
 2) Return to file selection
 """.format(options['labels'][i]))
-        choice = eval(raw_input('--> '))
+        choice = eval(raw_input('Enter selection [1-2]: '))
         if choice == 1:
             options['labels'][i] = raw_input('Enter label: ')
 
