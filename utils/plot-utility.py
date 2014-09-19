@@ -14,6 +14,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 import numpy as np
+import scipy.stats
 import brewer2mpl
 import xlrd
 
@@ -160,7 +161,7 @@ def plot(options, save=False):
             coe[-1].append(sheet.cell(i, 1).value/experiment)
             stdev[-1].append(1.96 * sheet.cell(i, 2).value)
             leakage[-1].append(sheet.cell(i, 3).value)
-            atlf[-1].append(sheet.cell(i, 4).value)
+            atlf[-1].append(sheet.cell(i, 5).value)
 
     # Get pretty color map
     n = len(labels)
@@ -224,11 +225,12 @@ def plot(options, save=False):
             else:
                 plt.plot(atlf[i], coe[i], 'o', **kwargs)
 
-            linear_fit = np.polyfit(atlf[i], coe[i], 1)
-            linear_func = np.poly1d(linear_fit)
-            plt.plot(atlf[i], linear_func(atlf[i]), color=colors[i], lw=1.5,
-                     label='{}\nC/E = {:.4f}*ATLF + {:.4f}'.format(
-                         options['labels'][i], *linear_fit))
+            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
+                atlf[i], coe[i])
+            plt.plot(atlf[i], intercept + slope*np.asarray(atlf[i]),
+                     color=colors[i], lw=1.5, label=
+                     '{}\nC/E = {:.4f}*ATLF + {:.4f}\n$R^2$={:.4f}'.format(
+                         options['labels'][i], slope, intercept, r_value**2))
 
         plt.xlabel('Above-thermal leakage fraction', fontsize=18)
         plt.ylabel(r'$k_{\text{eff}}$ C/E', fontsize=18)
