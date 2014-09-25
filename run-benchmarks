@@ -17,6 +17,7 @@ time=$(date +"%Y-%m-%d-%H%M%S")
 : ${code:=openmc}
 : ${xsxml:=/opt/data/ace/nndc/cross_sections.xml}
 : ${directory:=$time}
+: ${atlf:=true}
 
 # Change to correct directory
 if [[ ! -z $PBS_JOBID ]]; then
@@ -68,11 +69,19 @@ for benchmark in $(cat $list); do
         sed -r -e 's_.*=(.*)\+/-.*_\1_g')
     k_unc=$(cat benchmarks/${benchmark}/$output | grep -a Combined | \
         sed -r -e 's_.*\+/-(.*)_\1_g')
-    leak_mean=$(cat benchmarks/${benchmark}/$output | grep -a Leakage | \
+    leak_mean=$(cat benchmarks/${benchmark}/$output | grep -a "Leakage Frac" | \
         sed -r -e 's_.*=(.*)\+/-.*_\1_g')
-    leak_unc=$(cat benchmarks/${benchmark}/$output | grep -a Leakage | \
+    leak_unc=$(cat benchmarks/${benchmark}/$output | grep -a "Leakage Frac" | \
         sed -r -e 's_.*\+/-(.*)_\1_g')
-    echo $benchmark $k_mean $k_unc $leak_mean $leak_unc >> results
+    if [[ $atlf ]]; then
+	atlf_mean=$(cat benchmarks/${benchmark}/$output | grep -a "Above-thermal" | \
+	    sed -r -e 's_.*=(.*)\+/-.*_\1_g')
+	atlf_unc=$(cat benchmarks/${benchmark}/$output | grep -a "Above-thermal" | \
+	    sed -r -e 's_.*\+/-(.*)_\1_g')
+	echo $benchmark $k_mean $k_unc $leak_mean $leak_unc $atlf_mean $atlf_unc >> results
+    else
+	echo $benchmark $k_mean $k_unc $leak_mean $leak_unc >> results
+    fi
 done
 
 # Convert results to spreadsheet
