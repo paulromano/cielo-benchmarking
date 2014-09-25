@@ -17,7 +17,7 @@ time=$(date +"%Y-%m-%d-%H%M%S")
 : ${code:=openmc}
 : ${xsxml:=/opt/data/ace/nndc/cross_sections.xml}
 : ${directory:=$time}
-: ${atlf:=true}
+: ${atlf:=false}
 
 # Change to correct directory
 if [[ ! -z $PBS_JOBID ]]; then
@@ -52,19 +52,32 @@ echo "Running benchmarks..."
 for benchmark in $(cat $list); do
     i=$(expr $i \+ 1)
     echo $i $benchmark
-
-    # Run openmc
     cd benchmarks/${benchmark}
+
+    # Create tallies.xml file
+    cat <<EOF > tallies.xml
+<?xml version="1.0"?>
+<tallies>
+
+  <tally id="1">
+    <nuclides>all</nuclides>
+    <scores>total absorption fission</scores>
+  </tally>
+
+</tallies>
+EOF
+
+    # Run OpenMC
     output=output_$directory
     if [[ ! -z $PBS_JOBID ]]; then
-	CROSS_SECTIONS=${xsxml} mpiexec -rmk pbs $code > $output 2>&1
+        CROSS_SECTIONS=${xsxml} mpiexec -rmk pbs $code > $output 2>&1
     else
-	CROSS_SECTIONS=${xsxml} $code > $output 2>&1
+        CROSS_SECTIONS=${xsxml} $code > $output 2>&1
     fi
-    # mv tallies.out tallies_$time 2>/dev/null
-    cd $basedir
+    mv tallies.out tallies_$time 2>/dev/null
 
-    # Get k-effective
+    # Get results and collect in file
+    cd $basedir
     k_mean=$(cat benchmarks/${benchmark}/$output | grep -a Combined | \
         sed -r -e 's_.*=(.*)\+/-.*_\1_g')
     k_unc=$(cat benchmarks/${benchmark}/$output | grep -a Combined | \
@@ -74,13 +87,13 @@ for benchmark in $(cat $list); do
     leak_unc=$(cat benchmarks/${benchmark}/$output | grep -a "Leakage Frac" | \
         sed -r -e 's_.*\+/-(.*)_\1_g')
     if [[ $atlf ]]; then
-	atlf_mean=$(cat benchmarks/${benchmark}/$output | grep -a "Above-thermal" | \
-	    sed -r -e 's_.*=(.*)\+/-.*_\1_g')
-	atlf_unc=$(cat benchmarks/${benchmark}/$output | grep -a "Above-thermal" | \
-	    sed -r -e 's_.*\+/-(.*)_\1_g')
-	echo $benchmark $k_mean $k_unc $leak_mean $leak_unc $atlf_mean $atlf_unc >> results
+        atlf_mean=$(cat benchmarks/${benchmark}/$output | grep -a "Above-thermal" | \
+            sed -r -e 's_.*=(.*)\+/-.*_\1_g')
+        atlf_unc=$(cat benchmarks/${benchmark}/$output | grep -a "Above-thermal" | \
+            sed -r -e 's_.*\+/-(.*)_\1_g')
+        echo $benchmark $k_mean $k_unc $leak_mean $leak_unc $atlf_mean $atlf_unc >> results
     else
-	echo $benchmark $k_mean $k_unc $leak_mean $leak_unc >> results
+        echo $benchmark $k_mean $k_unc $leak_mean $leak_unc >> results
     fi
 done
 
