@@ -132,18 +132,21 @@ def plot(options, save=False):
         atlf.append([])
         for i in range(sheet.nrows - 1):
             words = sheet.cell(i, 0).value.split('/')
+            model = words[1]
+            volume, form, spectrum, number = model.split('-')
+            abbreviation = volume[0] + form[0] + spectrum[0]
+
             if len(words) >= 4:
-                benchmark = words[1] + '/' + words[3]
+                benchmark = model + '/' + words[3]
+                case = words[3].replace('case', '')
             else:
-                benchmark = words[1] + '/case-1'
+                benchmark = model
+                case = ''
+            name = '{}{}{}'.format(abbreviation, int(number), case)
+
             if options['match']:
                 if not fnmatch(benchmark, options['match']):
                     continue
-            model, case = benchmark.split('/')
-            volume, form, spectrum, number = model.split('-')
-            abbreviation = volume[0] + form[0] + spectrum[0]
-            name = '{}{}{}'.format(abbreviation, int(number),
-                                   case.replace('case', ''))
 
             if name in labels:
                 count = labels[name]
@@ -170,17 +173,18 @@ def plot(options, save=False):
     # Plot data
     if options['plot_type'] == 'keff':
         for i in range(len(x)):
+            mu = sum(coe[i])/len(coe[i])
+            sigma = sqrt(sum([s**2 for s in stdev[i]]))/len(stdev[i])
+
             kwargs = {'color': colors[i], 'mec': 'black', 'mew': 0.15}
             if options['show_legend']:
-                kwargs['label'] = options['labels'][i]
+                kwargs['label'] = options['labels'][i] + '\nAverage C/E = {:.4f}'.format(mu)
 
             if options['show_uncertainties']:
                 plt.errorbar(x[i], coe[i], yerr=stdev[i], fmt='o', **kwargs)
             else:
                 plt.plot(x[i], coe[i], 'o', **kwargs)
 
-            mu = sum(coe[i])/len(coe[i])
-            sigma = sqrt(sum([s**2 for s in stdev[i]]))/len(stdev[i])
 
             if options['show_shaded']:
                 ax = plt.gca()
@@ -188,8 +192,7 @@ def plot(options, save=False):
                 poly = Polygon(verts, facecolor=colors[i], alpha=0.5)
                 ax.add_patch(poly)
             else:
-                plt.plot([-1,n], [mu, mu], '-', color=colors[i], lw=1.5,
-                         label='{} (Avg)'.format(options['labels'][i]))
+                plt.plot([-1,n], [mu, mu], '-', color=colors[i], lw=1.5)
 
         # Show shaded region of benchmark model uncertainties
         uncverts = []
