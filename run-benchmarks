@@ -74,7 +74,7 @@ EOF
     else
         CROSS_SECTIONS=${xsxml} $code > $output 2>&1
     fi
-    mv tallies.out tallies_$time 2>/dev/null
+    mv tallies.out tallies_$directory 2>/dev/null
 
     # Get results and collect in file
     cd $basedir
@@ -104,5 +104,5 @@ status=$?
 
 # Create archive of outputs
 echo Creating ${directory}/results_output.tar.gz
-find . -name "output_${directory}" -o -name "tallies_${time}" | cut -c3- \
+find . -name "output_${directory}" -o -name "tallies_${directory}" | cut -c3- \
     | xargs tar czf results_output.tar.gz
