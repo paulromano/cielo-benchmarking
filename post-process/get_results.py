@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+from collections import defaultdict
 import tarfile
 import os
 import re
@@ -14,6 +15,7 @@ numeric_pattern = r"[-+]?(?:(?:\d*\.\d+)|(?:\d+\.?))(?:[Ee][+-]?\d+)"
 
 parser = argparse.ArgumentParser()
 parser.add_argument('tarfile', action='store', help='tar file')
+parser.add_argument('-s', '--summary', action='store_true', dest='summary', help='Show summary information')
 parser.add_argument('-x', '--xls', action='store', dest='xls', help='Spreadsheet to write')
 args = parser.parse_args()
 
@@ -89,6 +91,53 @@ for benchmark in data:
                   tally_data, re.MULTILINE | re.DOTALL)
     if m:
         data[benchmark]['Pu-239_fis'] = map(float, m.groups())
+
+# ==============================================================================
+# Show average C/E if requested
+
+if args.summary:
+    from tabulate import tabulate
+
+    avg = defaultdict(float)
+    count = defaultdict(int)
+    for benchmark in data:
+        d = data[benchmark]
+
+        value = (d['keff'][0] / d['keff_model'][0] - 1)*1e5
+
+        words = benchmark.split('/')
+        model = words[0].split('-')
+        category = model[0][0] + model[2][0]
+        if category not in avg:
+            avg[category] = 0.0
+            count[category] = 0
+        avg[category] += value
+        count[category] += 1
+
+    for category in avg:
+        avg[category] /= count[category]
+
+    headers = ["Fuel", "therm", "inter", "fast", "mixed"]
+    table = [['HEU', count['ht'], count['hi'], count['hf'], count['hm']],
+             ['LEU', count['lt'], count['li'], count['lf'], count['lm']],
+             ['IEU', count['it'], count['ii'], count['if'], count['im']],
+             ['Pu', count['pt'], count['pi'], count['pf'], count['pm']],
+             ['U233', count['ut'], count['ui'], count['uf'], count['um']],
+             ['Mix', count['mt'], count['mi'], count['mf'], count['mm']]]
+    print("BENCHMARK COUNT")
+    print(tabulate(table, headers=headers, tablefmt="grid"))
+
+    headers = ["Fuel", "therm", "inter", "fast", "mixed"]
+    table = [['HEU', avg['ht'], avg['hi'], avg['hf'], avg['hm']],
+             ['LEU', avg['lt'], avg['li'], avg['lf'], avg['lm']],
+             ['IEU', avg['it'], avg['ii'], avg['if'], avg['im']],
+             ['Pu', avg['pt'], avg['pi'], avg['pf'], avg['pm']],
+             ['U233', avg['ut'], avg['ui'], avg['uf'], avg['um']],
+             ['Mix', avg['mt'], avg['mi'], avg['mf'], avg['mm']]]
+    print("\nAVERAGE C/E DEVIATION")
+    print(tabulate(table, headers=headers, tablefmt="grid"))
+
+
 
 # ==============================================================================
 # Create spreadsheet if requested
