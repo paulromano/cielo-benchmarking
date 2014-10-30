@@ -72,7 +72,7 @@ def set_options(options):
 """.format(**options))
         choice = eval(raw_input('--> '))
         if choice == 1:
-            options['plot_type'] = raw_input('Enter plot type [keff/leakage]: ')
+            options['plot_type'] = raw_input('Enter plot type [keff/leakage/diff]: ')
         elif choice == 2:
             options['show_shaded'] = not options['show_shaded']
         elif choice == 3:
@@ -215,6 +215,29 @@ def plot(options, save=False):
         plt.setp(ax.get_yticklabels(), fontsize=14)
         plt.xlabel('Benchmark case', fontsize=18)
         plt.ylabel(r'$k_{\text{eff}}$ C/E', fontsize=18)
+        plt.gcf().set_size_inches(17,6)
+
+    elif options['plot_type'] == 'diff':
+        kwargs = {'mec': 'black', 'mew': 0.15}
+
+        coe0 = np.array(coe[0])
+        for i, coe in enumerate(coe[1:]):
+            coe = np.array(coe)
+            plt.plot(x[0], coe - coe0, 'o', label=options['labels'][i + 1],
+                     color=colors[i], **kwargs)
+
+            mu = sum(coe - coe0)/len(coe0)
+            plt.plot([-1,n], [mu, mu], '-', color=colors[i], lw=1.5)
+
+        # Configure plot
+        ax = plt.gca()
+        plt.xticks(range(1,n+1), labels.keys(), rotation='vertical')
+        plt.xlim((0,n+1))
+        plt.subplots_adjust(bottom=0.15)
+        plt.setp(ax.get_xticklabels(), fontsize=10)
+        plt.setp(ax.get_yticklabels(), fontsize=14)
+        plt.xlabel('Benchmark case', fontsize=18)
+        plt.ylabel(r'Difference in $k_{\text{eff}}$ C/E', fontsize=18)
         plt.gcf().set_size_inches(17,6)
 
     elif options['plot_type'] == 'leakage':
