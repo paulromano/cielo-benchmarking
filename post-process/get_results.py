@@ -53,13 +53,14 @@ for filename in filenames:
     # Get benchmark model k-effective and uncertainty
     if benchmark in model_keff:
         data[benchmark]['keff_model'] = model_keff[benchmark]
+    else:
+        if 'output' in filename:
+            print('Warning: No benchmark value for {}'.format(benchmark))
 
 # ==============================================================================
 # Parse output files for results
 
 for benchmark in data:
-    print(benchmark)
-
     output = f.extractfile(data[benchmark]['output'])
     for line in output:
         # k-effective
