@@ -1,0 +1,38 @@
+#!/bin/bash
+
+#PBS -l nodes=4:ppn=8
+#PBS -l walltime=240:00:00
+#PBS -M paul.k.romano@gmail.com
+#PBS -m e
+#PBS -j oe
+
+# Set default values
+: ${list:=benchmarks/lists/oxygen}
+: ${particles:=100000}
+: ${batches:=1100}
+: ${inactive:=100}
+: ${code:=openmc}
+
+# Change to correct directory
+if [[ ! -z $PBS_JOBID ]]; then
+    cd $PBS_O_WORKDIR
+    PATH=$PBS_O_PATH
+fi
+
+# Create new directory for run
+directory=$(date +"%Y-%m-%d-%H%M%S")
+mkdir -p $directory
+
+# Copy ace/xsdir files to directory
+cp evaluations/o16/cielo-ornl1.ace $directory/ace
+cp evaluations/o16/cielo-ornl1.xsdir $directory/xsdir
+
+# Convert ace file to binary
+$HOME/openmc/src/utils/convert_binary.py $directory/ace $directory/ace
+
+# Modified cross sections for OpenMC use
+./modify-csxml.py $directory
+xsxml=$(readlink -f $directory/cross_sections_new.xml)
+
+# Run benchmarks
+source run-benchmarks
