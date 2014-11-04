@@ -35,7 +35,7 @@ def get_input(files):
     os.system('clear')
     print("""
 1) Add file
-2) Set global options
+2) Set plot options
 3) Set file options
 4) Plot (save file)
 5) Plot (show)
@@ -58,7 +58,7 @@ def add_file():
 
 def set_options(options):
     choice = None
-    while choice != 8:
+    while choice != 10:
         os.system('clear')
         print("""
 1) Plot type                                     [{plot_type}]
@@ -68,7 +68,9 @@ def set_options(options):
 5) Case name pattern match                       [{match}]
 6) Title                                         [{title}]
 7) Author                                        [{author}]
-8) Return to main menu
+8) X-axis label                                  [{xlabel}]
+9) Y-axis label                                  [{ylabel}]
+10) Return to main menu
 """.format(**options))
         choice = eval(raw_input('--> '))
         if choice == 1:
@@ -85,6 +87,10 @@ def set_options(options):
             options['title'] = raw_input('Enter title: ')
         elif choice == 7:
             options['author'] = raw_input('Enter author: ')
+        elif choice == 8:
+            options['xlabel'] = raw_input('Enter x-label: ')
+        elif choice == 9:
+            options['ylabel'] = raw_input('Enter y-label: ')
 
 def set_file_main(options):
     n = len(options['files'])
@@ -213,8 +219,6 @@ def plot(options, save=False):
         plt.subplots_adjust(bottom=0.15)
         plt.setp(ax.get_xticklabels(), fontsize=10)
         plt.setp(ax.get_yticklabels(), fontsize=14)
-        plt.xlabel('Benchmark case', fontsize=18)
-        plt.ylabel(r'$k_{\text{eff}}$ C/E', fontsize=18)
         plt.gcf().set_size_inches(17,6)
 
     elif options['plot_type'] == 'diff':
@@ -236,8 +240,6 @@ def plot(options, save=False):
         plt.subplots_adjust(bottom=0.15)
         plt.setp(ax.get_xticklabels(), fontsize=10)
         plt.setp(ax.get_yticklabels(), fontsize=14)
-        plt.xlabel('Benchmark case', fontsize=18)
-        plt.ylabel(r'Difference in $k_{\text{eff}}$ C/E', fontsize=18)
         plt.gcf().set_size_inches(17,6)
 
     elif options['plot_type'] == 'leakage':
@@ -258,10 +260,10 @@ def plot(options, save=False):
                      '{}\nC/E = {:.4f}*ATLF + {:.4f}\n$R^2$={:.4f}'.format(
                          options['labels'][i], slope, intercept, r_value**2))
 
-        plt.xlabel('Above-thermal leakage fraction', fontsize=18)
-        plt.ylabel(r'$k_{\text{eff}}$ C/E', fontsize=18)
         plt.gcf().set_size_inches(12,6)
 
+    plt.xlabel(options['xlabel'], fontsize=18)
+    plt.ylabel(options['ylabel'], fontsize=18)
     plt.grid(True, which='both', color='lightgray', ls='-', alpha=0.7)
     plt.gca().set_axisbelow(True)
     title = '\n'.join([options['title'], 'Author: ' + options['author'],
@@ -290,6 +292,8 @@ if __name__ == "__main__":
                'show_shaded': True,
                'show_uncertainties': False,
                'show_legend': True,
+               'xlabel': 'Benchmark case',
+               'ylabel': r'$k_{\text{eff}}$ C/E',
                'match': '',
                'title': '',
                'author': 'Paul Romano'}
