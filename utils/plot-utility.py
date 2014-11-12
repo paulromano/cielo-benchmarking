@@ -225,13 +225,27 @@ def plot(options, save=False):
         kwargs = {'mec': 'black', 'mew': 0.15}
 
         coe0 = np.array(coe[0])
+        stdev0 = np.array(stdev[0])
         for i, coe in enumerate(coe[1:]):
             coe = np.array(coe)
-            plt.plot(x[0], coe - coe0, 'o', label=options['labels'][i + 1],
-                     color=colors[i], **kwargs)
+            stdev = np.array(stdev[i + 1])
+            err = abs(coe/coe0)*np.sqrt((stdev/coe)**2 + (stdev0/coe)**2)
+            if options['show_uncertainties']:
+                plt.errorbar(x[0], coe - coe0, yerr=err, fmt='o',
+                             label=options['labels'][i + 1], color=colors[i], **kwargs)
+            else:
+                plt.plot(x[0], coe - coe0, 'o', label=options['labels'][i + 1],
+                         color=colors[i], **kwargs)
 
             mu = sum(coe - coe0)/len(coe0)
-            plt.plot([-1,n], [mu, mu], '-', color=colors[i], lw=1.5)
+            if options['show_shaded']:
+                sigma = sqrt(sum([s**2 for s in err]))/len(err)
+                ax = plt.gca()
+                verts = [(0, mu - sigma), (0, mu + sigma), (n+1, mu + sigma), (n+1, mu - sigma)]
+                poly = Polygon(verts, facecolor=colors[i], alpha=0.5)
+                ax.add_patch(poly)
+            else:
+                plt.plot([-1,n], [mu, mu], '-', color=colors[i], lw=1.5)
 
         # Configure plot
         ax = plt.gca()
