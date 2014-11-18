@@ -111,6 +111,8 @@ class PlotUtility(object):
         root.withdraw()
         filename = askopenfilename(filetypes=(("Spreadsheets", "*.xls*"),
                                           ("All", "*.*")))
+        if not filename:
+            return
         root.destroy()
         label = raw_input('Enter label: ')
 
