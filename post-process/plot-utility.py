@@ -214,7 +214,8 @@ class PlotUtility(object):
         colors = brewer2mpl.get_map('Set2', 'qualitative', max(3,min(8,n))).mpl_colors
 
         for i, d in enumerate(self.data):
-            if self.ydata.startswith('ratio'):
+            words = self.ydata.split()
+            if words[0] in ('ratio', 'diff', 'rdiff'):
                 words = self.ydata.split()
                 q1 = words[1]
                 q2 = words[2]
@@ -235,10 +236,15 @@ class PlotUtility(object):
                     if not fnmatch(benchmark, self.match):
                         continue
 
-                if self.ydata.startswith('ratio'):
+                if words[0] == 'ratio':
                     if benchmark not in results2:
                         continue
                     value /= results2[benchmark][0]
+                elif words[0] == 'diff':
+                    value = results2[benchmark][0] - results[benchmark][0]
+                elif words[0] == 'rdiff':
+                    value = (results2[benchmark][0] - results[benchmark][0])/results[benchmark][0]
+
 
                 if self.xdata == 'benchmark':
                     if benchmark not in xindex:
