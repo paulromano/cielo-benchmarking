@@ -74,9 +74,9 @@ EOF
     # Run OpenMC
     output=output_$directory
     if [[ ! -z $PBS_JOBID ]]; then
-        CROSS_SECTIONS=${xsxml} mpiexec -rmk pbs $code > $output 2>&1
+        OPENMC_CROSS_SECTIONS=${xsxml} mpiexec -rmk pbs $code > $output 2>&1
     else
-        CROSS_SECTIONS=${xsxml} $code > $output 2>&1
+        OPENMC_CROSS_SECTIONS=${xsxml} $code > $output 2>&1
     fi
     mv tallies.out tallies_$directory 2>/dev/null
 
