@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 from math import sqrt
@@ -7,8 +7,9 @@ import argparse
 import os
 import time
 from fnmatch import fnmatch
-from tkFileDialog import askopenfilename, asksaveasfilename
-from Tkinter import Tk
+
+from tkinter.filedialog import askopenfilename, asksaveasfilename
+from tkinter import Tk
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -18,12 +19,13 @@ import scipy.stats
 import brewer2mpl
 import xlrd
 
+sys.path.insert(0, '/home/romano/benchmarks/icsbep')
 from icsbep.icsbep import model_keff
 
 matplotlib.rcParams['ps.useafm'] = True
 matplotlib.rcParams['pdf.use14corefonts'] = True
 matplotlib.rcParams['text.usetex'] = True
-matplotlib.rcParams['text.latex.preamble'] = ["""
+matplotlib.rcParams['text.latex.preamble'] = [r"""
 \usepackage[bitstream-charter]{mathdesign}
 \usepackage{amsmath}
 \usepackage[usenames]{xcolor}
@@ -45,7 +47,7 @@ Files:""")
     for filename in files:
         print('  ' + filename)
     print('')
-    return eval(raw_input('--> '))
+    return eval(input('--> '))
 
 def add_file():
     root = Tk()
@@ -53,7 +55,7 @@ def add_file():
     filename = askopenfilename(filetypes=(("Spreadsheets", "*.xls*"),
                                           ("All", "*.*")))
     root.destroy()
-    label = raw_input('Enter label: ')
+    label = input('Enter label: ')
     return label, filename
 
 def set_options(options):
