@@ -76,7 +76,7 @@ def make_pendf(filename, output=None):
 
         pendf_file = os.path.join(tmpdirname, 'tape22')
         if os.path.isfile(pendf_file):
-            os.rename(pendf_file, output)
+            shutil.move(pendf_file, output)
 
     return njoy
 
@@ -111,9 +111,12 @@ def make_ace(filename, output=None, show_output=True):
         ace_file = os.path.join(tmpdirname, 'tape25')
         xsdir_file = os.path.join(tmpdirname, 'tape26')
         if os.path.exists(ace_file):
-            os.rename(ace_file, output)
+            shutil.move(ace_file, output)
         if os.path.exists(xsdir_file):
-            os.rename(xsdir_file, output_xsdir)
+            shutil.move(xsdir_file, output_xsdir)
+
+    # Write NJOY output
+    open(zsymam.replace(' ', '') + '.njo', 'w').write(njoy.stdout)
 
     return njoy
 
@@ -123,4 +126,4 @@ if __name__ == '__main__':
     parser.add_argument('filename', help='Path to ENDF file')
     args = parser.parse_args()
 
-    make_pendf(args.filename)
+    make_ace(args.filename)
