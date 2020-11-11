@@ -229,8 +229,8 @@ def plot(options, save=False):
         stdev0 = np.array(stdev[0])
         for i, coe in enumerate(coe[1:]):
             coe = np.array(coe)
-            stdev = np.array(stdev[i + 1])
-            err = abs(coe/coe0)*np.sqrt((stdev/coe)**2 + (stdev0/coe)**2)
+            stdev_ = np.array(stdev[i + 1])
+            err = abs(coe/coe0)*np.sqrt((stdev_/coe)**2 + (stdev0/coe)**2)
             if options['show_uncertainties']:
                 plt.errorbar(x[0], coe - coe0, yerr=err, fmt='o',
                              label=options['labels'][i + 1], color=colors[i], **kwargs)
