@@ -3,9 +3,7 @@
 import sys
 from math import sqrt
 from collections import OrderedDict
-import argparse
 import os
-import time
 from fnmatch import fnmatch
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import Tk
@@ -269,9 +267,8 @@ def plot(options, save=False):
     plt.ylabel(options['ylabel'], fontsize=18)
     plt.grid(True, which='both', color='lightgray', ls='-', alpha=0.7)
     plt.gca().set_axisbelow(True)
-    title = '\n'.join([options['title'], 'Author: ' + options['author'],
-                       time.ctime()]).strip()
-    plt.title(title, multialignment='left')
+    if options['title']:
+        plt.title(options['title'], multialignment='left')
     if options['show_legend']:
         lgd = plt.legend(loc='center left', bbox_to_anchor=(1.0,0.5), numpoints=1)
     else:
