@@ -2,7 +2,6 @@
 
 import sys
 from math import sqrt
-from collections import OrderedDict
 import os
 from fnmatch import fnmatch
 from tkinter.filedialog import askopenfilename, asksaveasfilename
@@ -12,11 +11,55 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 import numpy as np
-import scipy.stats
-import xlrd
+import pandas as pd
+
 
 sys.path.insert(0, '/home/romano/benchmarks/icsbep')
 from icsbep.icsbep import model_keff
+
+
+def benchmark_name(excel_label):
+    if '/' not in excel_label: return excel_label
+    words = excel_label.split('/')
+    model = words[1]
+    volume, form, spectrum, number = model.split('-')
+    if len(words) >= 4:
+        return model + '/' + words[3]
+    else:
+        return model
+
+
+def short_name(name):
+    model, *case = name.split('/')
+    volume, form, spectrum, number = model.split('-')
+    abbreviation = volume[0] + form[0] + spectrum[0]
+    if case:
+        casenum = case[0].replace('case', '')
+    else:
+        casenum = ''
+    return f'{abbreviation}{int(number)}{casenum}'
+
+
+def get_result_dataframe(filename):
+    df = pd.read_excel(
+        filename,
+        header=None,
+        names=['name', 'keff', 'stdev'],
+        usecols='A:C',
+        converters={'name': benchmark_name}
+    )
+    df.set_index("name", inplace=True)
+
+    # Get rid of last row
+    df.drop("AVERAGE", inplace=True)
+    return df
+
+
+def get_icsbep_dataframe():
+    keff = [x[0] for x in model_keff.values()]
+    stdev = [x[1] for x in model_keff.values()]
+    data = {'keff': keff, 'stdev': stdev}
+    return pd.DataFrame(data, index=model_keff.keys())
 
 
 def get_input(files):
@@ -103,76 +146,47 @@ def set_file_options(options, i):
             options['labels'][i] = input('Enter label: ')
 
 def plot(options, save=False):
-    # Read data from files
-    labels = OrderedDict()
-    x = []
-    keff = []
-    coe = []
-    stdev = []
-    count = 0
-    benchmark_list = []
-    for xls in options['files']:
-        book = xlrd.open_workbook(xls)
-        sheet = book.sheet_by_index(0)
+    # Read data from spreadsheets
+    dataframes = {}
+    for xls, label in zip(options['files'], options['labels']):
+        dataframes[label] = get_result_dataframe(xls)
 
-        x.append([])
-        keff.append([])
-        coe.append([])
-        stdev.append([])
-        for i in range(sheet.nrows - 1):
-            words = sheet.cell(i, 0).value.split('/')
-            model = words[1]
-            volume, form, spectrum, number = model.split('-')
-            abbreviation = volume[0] + form[0] + spectrum[0]
+    # Get model keff and uncertainty from ICSBEP
+    icsbep = get_icsbep_dataframe()
 
-            if len(words) >= 4:
-                benchmark = model + '/' + words[3]
-                case = words[3].replace('case', '')
-            else:
-                benchmark = model
-                case = ''
-            name = f'{abbreviation}{int(number)}{case}'
+    # Determine common benchmarks
+    base = options['labels'][0]
+    index = dataframes[base].index
+    for df in dataframes.values():
+        index = index.intersection(df.index)
 
-            if options['match']:
-                if not fnmatch(benchmark, options['match']):
-                    continue
+    # Applying matching as needed
+    if options['match']:
+        cond = index.map(lambda x: fnmatch(x, options['match']))
+        index = index[cond]
 
-            if name in labels:
-                count = labels[name]
-            else:
-                count += 1
-                labels[name] = count
-                benchmark_list.append(benchmark)
-
-            if benchmark in model_keff:
-                experiment = model_keff[benchmark][0]
-            else:
-                experiment = 1.0
-
-            x[-1].append(count)
-            keff[-1].append(sheet.cell(i, 1).value)
-            coe[-1].append(sheet.cell(i, 1).value/experiment)
-            stdev[-1].append(1.96 * sheet.cell(i, 2).value)
-
-    # Get pretty color map
-    n = len(labels)
+    # Setup x values (integers) and corresponding tick labels
+    n = index.size
+    x = range(1, n + 1)
+    xticklabels = index.map(short_name)
 
     # Plot data
     if options['plot_type'] == 'keff':
-        for i in range(len(x)):
-            mu = sum(coe[i])/len(coe[i])
-            sigma = sqrt(sum([s**2 for s in stdev[i]]))/len(stdev[i])
+        for i, (label, df) in enumerate(dataframes.items()):
+            coe = (df['keff'] / icsbep['keff']).loc[index]
+            stdev = 1.96 * df['stdev'].loc[index]
 
             kwargs = {'color': f'C{i}', 'mec': 'black', 'mew': 0.15}
             if options['show_legend']:
-                kwargs['label'] = options['labels'][i]
+                kwargs['label'] = label
 
             if options['show_uncertainties']:
-                plt.errorbar(x[i], coe[i], yerr=stdev[i], fmt='o', **kwargs)
+                plt.errorbar(x, coe, yerr=stdev, fmt='o', **kwargs)
             else:
-                plt.plot(x[i], coe[i], 'o', **kwargs)
+                plt.plot(x, coe, 'o', **kwargs)
 
-
+            mu = coe.mean()
+            sigma = coe.std() / sqrt(n)
             if options['show_shaded']:
                 ax = plt.gca()
                 verts = [(0, mu - sigma), (0, mu + sigma), (n+1, mu + sigma), (n+1, mu - sigma)]
@@ -183,43 +197,37 @@ def plot(options, save=False):
 
         # Show shaded region of benchmark model uncertainties
         uncverts = []
-        for i, benchmark in enumerate(benchmark_list):
+        for i, benchmark in enumerate(index):
             unc = 0.0 if benchmark not in model_keff else model_keff[benchmark][1]
             uncverts.append((1 + i, 1 + unc))
-        for i, benchmark in enumerate(benchmark_list[::-1]):
+        for i, benchmark in enumerate(index[::-1]):
             unc = 0.0 if benchmark not in model_keff else model_keff[benchmark][1]
             uncverts.append((n - i, 1 - unc))
         poly = Polygon(uncverts, facecolor='gray', edgecolor=None, alpha=0.2)
         ax = plt.gca()
         ax.add_patch(poly)
 
-        # Configure plot
-        ax = plt.gca()
-        plt.xticks(range(1,n+1), labels.keys(), rotation='vertical')
-        plt.xlim((0,n+1))
-        plt.subplots_adjust(bottom=0.15)
-        plt.setp(ax.get_xticklabels(), fontsize=10)
-        plt.setp(ax.get_yticklabels(), fontsize=14)
-        plt.gcf().set_size_inches(17,6)
-
     elif options['plot_type'] == 'diff':
         kwargs = {'mec': 'black', 'mew': 0.15, 'fmt': 'o'}
 
-        keff0 = np.array(keff[0])
-        stdev0 = np.array(stdev[0])
-        for i, keff_i in enumerate(keff[1:]):
-            keff_i = np.array(keff_i)
-            stdev_i = np.array(stdev[i + 1])
+        keff0 = dataframes[base]['keff'].loc[index]
+        stdev0 = dataframes[base]['stdev'].loc[index]
+        for i, label in enumerate(options['labels'][1:]):
+            df = dataframes[label]
+            keff_i = df['keff'].loc[index]
+            stdev_i = df['stdev'].loc[index]
+
+            diff = keff_i - keff0
             err = np.sqrt(stdev_i**2 + stdev0**2)
             kwargs['label'] = options['labels'][i + 1] + ' - ' + options['labels'][0]
             if options['show_uncertainties']:
-                plt.errorbar(x[0], keff_i - keff0, yerr=err, color=f'C{i}', **kwargs)
+                plt.errorbar(x, diff, yerr=err, color=f'C{i}', **kwargs)
             else:
-                plt.plot(x[0], keff_i - keff0, color=f'C{i}', **kwargs)
+                plt.plot(x, diff, color=f'C{i}', **kwargs)
 
-            mu = sum(keff_i - keff0)/len(keff0)
+            mu = diff.mean()
             if options['show_shaded']:
-                sigma = sqrt(sum([s**2 for s in err]))/len(err)
+                sigma = diff.std() / sqrt(n)
                 ax = plt.gca()
                 verts = [(0, mu - sigma), (0, mu + sigma), (n+1, mu + sigma), (n+1, mu - sigma)]
                 poly = Polygon(verts, facecolor=f'C{i}', alpha=0.5)
@@ -227,15 +235,14 @@ def plot(options, save=False):
             else:
                 plt.plot([-1,n], [mu, mu], '-', color=f'C{i}', lw=1.5)
 
-        # Configure plot
-        ax = plt.gca()
-        plt.xticks(range(1,n+1), labels.keys(), rotation='vertical')
-        plt.xlim((0,n+1))
-        plt.subplots_adjust(bottom=0.15)
-        plt.setp(ax.get_xticklabels(), fontsize=10)
-        plt.setp(ax.get_yticklabels(), fontsize=14)
-        plt.gcf().set_size_inches(17,6)
-
+    # Configure plot
+    ax = plt.gca()
+    plt.xticks(x, xticklabels, rotation='vertical')
+    plt.xlim((0,n+1))
+    plt.subplots_adjust(bottom=0.15)
+    plt.setp(ax.get_xticklabels(), fontsize=10)
+    plt.setp(ax.get_yticklabels(), fontsize=14)
+    plt.gcf().set_size_inches(17, 6)
     plt.xlabel(options['xlabel'], fontsize=18)
     plt.ylabel(options['ylabel'], fontsize=18)
     plt.grid(True, which='both', color='lightgray', ls='-', alpha=0.7)
