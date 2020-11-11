@@ -243,9 +243,7 @@ def plot(options, save=False):
     if options['title']:
         plt.title(options['title'], multialignment='left')
     if options['show_legend']:
-        lgd = plt.legend(loc='center left', bbox_to_anchor=(1.0,0.5), numpoints=1)
-    else:
-        lgd = None
+        lgd = plt.legend(numpoints=1)
 
     if save:
         # Get file name
@@ -253,7 +251,7 @@ def plot(options, save=False):
         root.withdraw()
         filename = asksaveasfilename()
         root.destroy()
-        plt.savefig(filename, bbox_extra_artists=(lgd,), bbox_inches='tight')
+        plt.savefig(filename, bbox_inches='tight')
     else:
         plt.show()
     plt.close()
