@@ -33,7 +33,7 @@ Files:""")
     for filename in files:
         print('  ' + filename)
     print('')
-    return eval(input('--> '))
+    return int(input('--> '))
 
 def add_file():
     root = Tk()
@@ -41,7 +41,7 @@ def add_file():
     filename = askopenfilename(filetypes=(("Spreadsheets", "*.xls*"),
                                           ("All", "*.*")))
     root.destroy()
-    label = input('Enter label: ')
+    label = input('Enter label: ') if filename else None
     return label, filename
 
 def set_options(options):
@@ -60,7 +60,7 @@ def set_options(options):
 9) Y-axis label                                  [{ylabel}]
 10) Return to main menu
 """.format(**options))
-        choice = eval(input('--> '))
+        choice = int(input('--> '))
         if choice == 1:
             options['plot_type'] = input('Enter plot type [keff/diff]: ')
         elif choice == 2:
@@ -87,10 +87,10 @@ def set_file_main(options):
         os.system('clear')
         print("Select file:")
         for i, filename in enumerate(options['files']):
-            print("{}) {}".format(i + 1, filename))
-        print("{}) Return to main menu".format(len(options['files']) + 1))
-        choice = eval(input('--> '))
-        if choice != len(options['files']) + 1:
+            print(f"{i + 1}) {filename}")
+        print(f"{n + 1}) Return to main menu")
+        choice = int(input('--> '))
+        if choice != n + 1:
             set_file_options(options, choice - 1)
 
 def set_file_options(options, i):
@@ -101,7 +101,7 @@ def set_file_options(options, i):
 1) File label                                    [{}]
 2) Return to file selection
 """.format(options['labels'][i]))
-        choice = eval(input('--> '))
+        choice = int(input('--> '))
         if choice == 1:
             options['labels'][i] = input('Enter label: ')
 
@@ -132,7 +132,7 @@ def plot(options, save=False):
             else:
                 benchmark = model
                 case = ''
-            name = '{}{}{}'.format(abbreviation, int(number), case)
+            name = f'{abbreviation}{int(number)}{case}'
 
             if options['match']:
                 if not fnmatch(benchmark, options['match']):
@@ -165,7 +165,7 @@ def plot(options, save=False):
 
             kwargs = {'color': f'C{i}', 'mec': 'black', 'mew': 0.15}
             if options['show_legend']:
-                kwargs['label'] = options['labels'][i] + '\nAverage C/E = {:.4f}'.format(mu)
+                kwargs['label'] = options['labels'][i] + f'\nAverage C/E = {mu:.4f}'
 
             if options['show_uncertainties']:
                 plt.errorbar(x[i], coe[i], yerr=stdev[i], fmt='o', **kwargs)
