@@ -21,16 +21,6 @@ import xlrd
 sys.path.insert(0, '/home/romano/benchmarks/icsbep')
 from icsbep.icsbep import model_keff
 
-matplotlib.rcParams['ps.useafm'] = True
-matplotlib.rcParams['pdf.use14corefonts'] = True
-matplotlib.rcParams['text.usetex'] = True
-matplotlib.rcParams['text.latex.preamble'] = [r"""
-\usepackage[bitstream-charter]{mathdesign}
-\usepackage{amsmath}
-\usepackage[usenames]{xcolor}
-"""]
-matplotlib.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
-
 
 def get_input(files):
     os.system('clear')
@@ -308,7 +298,7 @@ if __name__ == "__main__":
                'show_uncertainties': False,
                'show_legend': True,
                'xlabel': 'Benchmark case',
-               'ylabel': r'$k_{\text{eff}}$ C/E',
+               'ylabel': r'$k_{\mathrm{eff}}$ C/E',
                'match': '',
                'title': '',
                'author': 'Paul Romano'}
