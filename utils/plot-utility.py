@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 import numpy as np
 import scipy.stats
-import brewer2mpl
 import xlrd
 
 sys.path.insert(0, '/home/romano/benchmarks/icsbep')
@@ -165,7 +164,6 @@ def plot(options, save=False):
 
     # Get pretty color map
     n = len(labels)
-    colors = brewer2mpl.get_map('Set2', 'qualitative', max(3,min(8,n))).mpl_colors
 
     # Plot data
     if options['plot_type'] == 'keff':
@@ -173,7 +171,7 @@ def plot(options, save=False):
             mu = sum(coe[i])/len(coe[i])
             sigma = sqrt(sum([s**2 for s in stdev[i]]))/len(stdev[i])
 
-            kwargs = {'color': colors[i], 'mec': 'black', 'mew': 0.15}
+            kwargs = {'color': f'C{i}', 'mec': 'black', 'mew': 0.15}
             if options['show_legend']:
                 kwargs['label'] = options['labels'][i] + '\nAverage C/E = {:.4f}'.format(mu)
 
@@ -186,10 +184,10 @@ def plot(options, save=False):
             if options['show_shaded']:
                 ax = plt.gca()
                 verts = [(0, mu - sigma), (0, mu + sigma), (n+1, mu + sigma), (n+1, mu - sigma)]
-                poly = Polygon(verts, facecolor=colors[i], alpha=0.5)
+                poly = Polygon(verts, facecolor=f'C{i}', alpha=0.5)
                 ax.add_patch(poly)
             else:
-                plt.plot([-1,n], [mu, mu], '-', color=colors[i], lw=1.5)
+                plt.plot([-1,n], [mu, mu], '-', color=f'C{i}', lw=1.5)
 
         # Show shaded region of benchmark model uncertainties
         uncverts = []
@@ -223,20 +221,20 @@ def plot(options, save=False):
             err = abs(coe/coe0)*np.sqrt((stdev_/coe)**2 + (stdev0/coe)**2)
             if options['show_uncertainties']:
                 plt.errorbar(x[0], coe - coe0, yerr=err, fmt='o',
-                             label=options['labels'][i + 1], color=colors[i], **kwargs)
+                             label=options['labels'][i + 1], color=f'C{i}', **kwargs)
             else:
                 plt.plot(x[0], coe - coe0, 'o', label=options['labels'][i + 1],
-                         color=colors[i], **kwargs)
+                         color=f'C{i}', **kwargs)
 
             mu = sum(coe - coe0)/len(coe0)
             if options['show_shaded']:
                 sigma = sqrt(sum([s**2 for s in err]))/len(err)
                 ax = plt.gca()
                 verts = [(0, mu - sigma), (0, mu + sigma), (n+1, mu + sigma), (n+1, mu - sigma)]
-                poly = Polygon(verts, facecolor=colors[i], alpha=0.5)
+                poly = Polygon(verts, facecolor=f'C{i}', alpha=0.5)
                 ax.add_patch(poly)
             else:
-                plt.plot([-1,n], [mu, mu], '-', color=colors[i], lw=1.5)
+                plt.plot([-1,n], [mu, mu], '-', color=f'C{i}', lw=1.5)
 
         # Configure plot
         ax = plt.gca()
@@ -249,7 +247,7 @@ def plot(options, save=False):
 
     elif options['plot_type'] == 'leakage':
         for i in range(len(x)):
-            kwargs = {'color': colors[i], 'mec': 'black', 'mew': 0.15}
+            kwargs = {'color': f'C{i}', 'mec': 'black', 'mew': 0.15}
             if options['show_legend']:
                 kwargs['label'] = options['labels'][i]
 
@@ -261,7 +259,7 @@ def plot(options, save=False):
             slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
                 atlf[i], coe[i])
             plt.plot(atlf[i], intercept + slope*np.asarray(atlf[i]),
-                     color=colors[i], lw=1.5, label=
+                     color=f'C{i}', lw=1.5, label=
                      '{}\nC/E = {:.4f}*ATLF + {:.4f}\n$R^2$={:.4f}'.format(
                          options['labels'][i], slope, intercept, r_value**2))
 
