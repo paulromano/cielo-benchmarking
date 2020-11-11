@@ -71,6 +71,11 @@ for benchmark in $(cat $list); do
 </tallies>
 EOF
 
+    # Re-generate materials.xml if Python script is present
+    if [[ -e generate_materials.py ]]; then
+        OPENMC_CROSS_SECTIONS=${xsxml} python generate_materials.py
+    fi
+
     # Run OpenMC
     output=output_$directory
     if [[ ! -z $PBS_JOBID ]]; then
