@@ -62,7 +62,7 @@ def set_options(options):
 """.format(**options))
         choice = eval(input('--> '))
         if choice == 1:
-            options['plot_type'] = input('Enter plot type [keff/leakage/diff]: ')
+            options['plot_type'] = input('Enter plot type [keff/diff]: ')
         elif choice == 2:
             options['show_shaded'] = not options['show_shaded']
         elif choice == 3:
@@ -111,8 +111,6 @@ def plot(options, save=False):
     x = []
     coe = []
     stdev = []
-    leakage = []
-    atlf = []
     count = 0
     benchmark_list = []
     for xls in options['files']:
@@ -122,8 +120,6 @@ def plot(options, save=False):
         x.append([])
         coe.append([])
         stdev.append([])
-        leakage.append([])
-        atlf.append([])
         for i in range(sheet.nrows - 1):
             words = sheet.cell(i, 0).value.split('/')
             model = words[1]
@@ -157,8 +153,6 @@ def plot(options, save=False):
             x[-1].append(count)
             coe[-1].append(sheet.cell(i, 1).value/experiment)
             stdev[-1].append(1.96 * sheet.cell(i, 2).value)
-            leakage[-1].append(sheet.cell(i, 3).value)
-            atlf[-1].append(sheet.cell(i, 5).value)
 
     # Get pretty color map
     n = len(labels)
@@ -242,26 +236,6 @@ def plot(options, save=False):
         plt.setp(ax.get_xticklabels(), fontsize=10)
         plt.setp(ax.get_yticklabels(), fontsize=14)
         plt.gcf().set_size_inches(17,6)
-
-    elif options['plot_type'] == 'leakage':
-        for i in range(len(x)):
-            kwargs = {'color': f'C{i}', 'mec': 'black', 'mew': 0.15}
-            if options['show_legend']:
-                kwargs['label'] = options['labels'][i]
-
-            if options['show_uncertainties']:
-                plt.errorbar(atlf[i], coe[i], yerr=stdev[i], fmt='o', **kwargs)
-            else:
-                plt.plot(atlf[i], coe[i], 'o', **kwargs)
-
-            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
-                atlf[i], coe[i])
-            plt.plot(atlf[i], intercept + slope*np.asarray(atlf[i]),
-                     color=f'C{i}', lw=1.5, label=
-                     '{}\nC/E = {:.4f}*ATLF + {:.4f}\n$R^2$={:.4f}'.format(
-                         options['labels'][i], slope, intercept, r_value**2))
-
-        plt.gcf().set_size_inches(12,6)
 
     plt.xlabel(options['xlabel'], fontsize=18)
     plt.ylabel(options['ylabel'], fontsize=18)
