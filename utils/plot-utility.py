@@ -106,6 +106,7 @@ def plot(options, save=False):
     # Read data from files
     labels = OrderedDict()
     x = []
+    keff = []
     coe = []
     stdev = []
     count = 0
@@ -115,6 +116,7 @@ def plot(options, save=False):
         sheet = book.sheet_by_index(0)
 
         x.append([])
+        keff.append([])
         coe.append([])
         stdev.append([])
         for i in range(sheet.nrows - 1):
@@ -148,6 +150,7 @@ def plot(options, save=False):
                 experiment = 1.0
 
             x[-1].append(count)
+            keff[-1].append(sheet.cell(i, 1).value)
             coe[-1].append(sheet.cell(i, 1).value/experiment)
             stdev[-1].append(1.96 * sheet.cell(i, 2).value)
 
@@ -200,22 +203,21 @@ def plot(options, save=False):
         plt.gcf().set_size_inches(17,6)
 
     elif options['plot_type'] == 'diff':
-        kwargs = {'mec': 'black', 'mew': 0.15}
+        kwargs = {'mec': 'black', 'mew': 0.15, 'fmt': 'o'}
 
-        coe0 = np.array(coe[0])
+        keff0 = np.array(keff[0])
         stdev0 = np.array(stdev[0])
-        for i, coe in enumerate(coe[1:]):
-            coe = np.array(coe)
-            stdev_ = np.array(stdev[i + 1])
-            err = abs(coe/coe0)*np.sqrt((stdev_/coe)**2 + (stdev0/coe)**2)
+        for i, keff_i in enumerate(keff[1:]):
+            keff_i = np.array(keff_i)
+            stdev_i = np.array(stdev[i + 1])
+            err = np.sqrt(stdev_i**2 + stdev0**2)
+            kwargs['label'] = options['labels'][i + 1] + ' - ' + options['labels'][0]
             if options['show_uncertainties']:
-                plt.errorbar(x[0], coe - coe0, yerr=err, fmt='o',
-                             label=options['labels'][i + 1], color=f'C{i}', **kwargs)
+                plt.errorbar(x[0], keff_i - keff0, yerr=err, color=f'C{i}', **kwargs)
             else:
-                plt.plot(x[0], coe - coe0, 'o', label=options['labels'][i + 1],
-                         color=f'C{i}', **kwargs)
+                plt.plot(x[0], keff_i - keff0, color=f'C{i}', **kwargs)
 
-            mu = sum(coe - coe0)/len(coe0)
+            mu = sum(keff_i - keff0)/len(keff0)
             if options['show_shaded']:
                 sigma = sqrt(sum([s**2 for s in err]))/len(err)
                 ax = plt.gca()
