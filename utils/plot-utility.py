@@ -7,7 +7,6 @@ import argparse
 import os
 import time
 from fnmatch import fnmatch
-
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import Tk
 
@@ -74,9 +73,9 @@ def set_options(options):
 9) Y-axis label                                  [{ylabel}]
 10) Return to main menu
 """.format(**options))
-        choice = eval(raw_input('--> '))
+        choice = eval(input('--> '))
         if choice == 1:
-            options['plot_type'] = raw_input('Enter plot type [keff/leakage/diff]: ')
+            options['plot_type'] = input('Enter plot type [keff/leakage/diff]: ')
         elif choice == 2:
             options['show_shaded'] = not options['show_shaded']
         elif choice == 3:
@@ -84,15 +83,15 @@ def set_options(options):
         elif choice == 4:
             options['show_legend'] = not options['show_legend']
         elif choice == 5:
-            options['match'] = raw_input('Enter matching pattern: ')
+            options['match'] = input('Enter matching pattern: ')
         elif choice == 6:
-            options['title'] = raw_input('Enter title: ')
+            options['title'] = input('Enter title: ')
         elif choice == 7:
-            options['author'] = raw_input('Enter author: ')
+            options['author'] = input('Enter author: ')
         elif choice == 8:
-            options['xlabel'] = raw_input('Enter x-label: ')
+            options['xlabel'] = input('Enter x-label: ')
         elif choice == 9:
-            options['ylabel'] = raw_input('Enter y-label: ')
+            options['ylabel'] = input('Enter y-label: ')
 
 def set_file_main(options):
     n = len(options['files'])
@@ -103,7 +102,7 @@ def set_file_main(options):
         for i, filename in enumerate(options['files']):
             print("{}) {}".format(i + 1, filename))
         print("{}) Return to main menu".format(len(options['files']) + 1))
-        choice = eval(raw_input('--> '))
+        choice = eval(input('--> '))
         if choice != len(options['files']) + 1:
             set_file_options(options, choice - 1)
 
@@ -115,9 +114,9 @@ def set_file_options(options, i):
 1) File label                                    [{}]
 2) Return to file selection
 """.format(options['labels'][i]))
-        choice = eval(raw_input('--> '))
+        choice = eval(input('--> '))
         if choice == 1:
-            options['labels'][i] = raw_input('Enter label: ')
+            options['labels'][i] = input('Enter label: ')
 
 def plot(options, save=False):
     # Read data from files
