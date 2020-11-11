@@ -42,7 +42,7 @@ from icsbep.icsbep import model_keff
 matplotlib.rcParams['ps.useafm'] = True
 matplotlib.rcParams['pdf.use14corefonts'] = True
 matplotlib.rcParams['text.usetex'] = True
-matplotlib.rcParams['text.latex.preamble'] = ["""
+matplotlib.rcParams['text.latex.preamble'] = [r"""
 \usepackage[bitstream-charter]{mathdesign}
 \usepackage{amsmath}
 \usepackage[usenames]{xcolor}
