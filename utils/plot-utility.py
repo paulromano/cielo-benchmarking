@@ -46,7 +46,7 @@ def add_file():
 
 def set_options(options):
     choice = None
-    while choice != 10:
+    while choice != 9:
         os.system('clear')
         print("""
 1) Plot type                                     [{plot_type}]
@@ -55,10 +55,9 @@ def set_options(options):
 4) Show legend                                   [{show_legend}]
 5) Case name pattern match                       [{match}]
 6) Title                                         [{title}]
-7) Author                                        [{author}]
-8) X-axis label                                  [{xlabel}]
-9) Y-axis label                                  [{ylabel}]
-10) Return to main menu
+7) X-axis label                                  [{xlabel}]
+8) Y-axis label                                  [{ylabel}]
+9) Return to main menu
 """.format(**options))
         choice = int(input('--> '))
         if choice == 1:
@@ -74,10 +73,8 @@ def set_options(options):
         elif choice == 6:
             options['title'] = input('Enter title: ')
         elif choice == 7:
-            options['author'] = input('Enter author: ')
-        elif choice == 8:
             options['xlabel'] = input('Enter x-label: ')
-        elif choice == 9:
+        elif choice == 8:
             options['ylabel'] = input('Enter y-label: ')
 
 def set_file_main(options):
@@ -165,7 +162,7 @@ def plot(options, save=False):
 
             kwargs = {'color': f'C{i}', 'mec': 'black', 'mew': 0.15}
             if options['show_legend']:
-                kwargs['label'] = options['labels'][i] + f'\nAverage C/E = {mu:.4f}'
+                kwargs['label'] = options['labels'][i]
 
             if options['show_uncertainties']:
                 plt.errorbar(x[i], coe[i], yerr=stdev[i], fmt='o', **kwargs)
@@ -260,17 +257,18 @@ def plot(options, save=False):
     plt.close()
 
 if __name__ == "__main__":
-    options = {'files': [],
-               'labels': [],
-               'plot_type': 'keff',
-               'show_shaded': True,
-               'show_uncertainties': False,
-               'show_legend': True,
-               'xlabel': 'Benchmark case',
-               'ylabel': r'$k_{\mathrm{eff}}$ C/E',
-               'match': '',
-               'title': '',
-               'author': 'Paul Romano'}
+    options = {
+        'files': [],
+        'labels': [],
+        'plot_type': 'keff',
+        'show_shaded': True,
+        'show_uncertainties': True,
+        'show_legend': True,
+        'xlabel': 'Benchmark case',
+        'ylabel': r'$k_{\mathrm{eff}}$ C/E',
+        'match': '',
+        'title': '',
+    }
 
     while True:
         choice = get_input(options['files'])
